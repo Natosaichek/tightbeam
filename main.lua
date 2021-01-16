@@ -12,16 +12,15 @@ local address, port = "localhost", 343434
 local entity -- entity is what we'll be controlling
 local updaterate = 0.02 -- how long to wait, in seconds, before requesting an update.  We want a fast-twitch game, so 20 ms should be plenty fast.
 local t
+local score
+local gameRunning
 
 -- onetime setup
 function love.load()
-	entity = tostring(2)
-	local tx_data = string.format("%s", entity)
-	udp = socket.udp()
-	udp:settimeout(0)
-	udp:setpeername(address,port)
-	udp:send(tx_data)
-	t = 0
+	love.window.setTitle("Tightbeam - Commsat Combat")
+	t=120
+	score = 0
+	gameRunning = true
 end
 
 -- Interface Functions
@@ -37,6 +36,16 @@ function mouseinCircle(x,y,radius)
 	mx, my = love.mouse.getPosition( )
 	return (mx-x)*(mx-x) + (my-y)*(my-y) < radius*radius
 end
+
+function printSpectrum(spectrum)
+	x = 400
+	y = 20
+	for i=1,100,1
+	do
+		love.graphics.print(tostring(spectrum[i]), x, y+i*9)
+	end
+end
+
 
 function radiatorInterface()
 	local x = 16
@@ -262,52 +271,67 @@ function laserInterface()
 	end
 end
 
-
-
 -- what to draw on the screen every frame
 function love.draw()
-	radiatorInterface()
-	transreflectorInterface()
-	furnaceInterface()
-	capacitorInterface()
-	laserInterface()
+	if gameRunning then
+		radiatorInterface()
+		transreflectorInterface()
+		furnaceInterface()
+		capacitorInterface()
+		laserInterface()
+		love.graphics.print(string.format("%s", tostring(score)), 500, 250)
+		love.graphics.print(string.format("%s", tostring(t)), 500, 220)
+	else
+		love.graphics.print("yourScore:", 280, 230)
+		love.graphics.print(string.format("%s", tostring(score)), 300, 250)
+	end
 end
 
-
-
 function love.update(dt)
-	--update can be called a lot.  dt is the time since it was last called.
-	-- Power is energy / time.
-	-- energy is power*time
+	if gameRunning then
+		--update can be called a lot.  dt is the time since it was last called.
+		-- Power is energy / time.
+		-- energy is power*time
 
-	-- the radiator emits energy at some rate, that is, there is a power level for it at 
-	-- each point in it's spectrum.  how much energy has left in the past dt? lets see:
-	Radiator:radiateEnergy(dt)
-	-- our radiated spectrum is a power spectrum
-	radiatedSpectrum = Radiator:spectrum()
-	internallyReflectedSpectrum = Transreflector:reflect(radiatedSpectrum)
-	Radiator:addPowerSpectrum(internallyReflectedSpectrum, dt)
-	-- any reflected energy has now been reabsorbed.
+		-- the radiator emits energy at some rate, that is, there is a power level for it at 
+		-- each point in it's spectrum.  how much energy has left in the past dt? lets see:
+		Radiator:radiateEnergy(dt)
+		-- our radiated spectrum is a power spectrum
+		radiatedSpectrum = Radiator:spectrum()
+		internallyReflectedSpectrum = Transreflector:reflect(radiatedSpectrum)
+		Radiator:addPowerSpectrum(internallyReflectedSpectrum, dt)
+		-- any reflected energy has now been reabsorbed.
 
-	-- our furnace takes time to adjust its power level.
-	Furnace.adjustPower(dt)
+		-- our furnace takes time to adjust its power level.
+		Furnace.adjustPower(dt)
 
-	-- are any capacitors set for charging?
-		-- if so, distribute power from furnace into capacitors, unless it's full.
-		-- if not, put power from furnace into radiator.
-	excessEnergy = CapacitorBank.consumePower(Furnace, dt) -- if there is excess energy this dt because the capacitors are full, then we dump it.
-	Radiator:addEnergy(excessEnergy)
+		-- are any capacitors set for charging?
+			-- if so, distribute power from furnace into capacitors, unless it's full.
+			-- if not, put power from furnace into radiator.
+		excessEnergy = CapacitorBank.consumePower(Furnace, dt) -- if there is excess energy this dt because the capacitors are full, then we dump it.
+		Radiator:addEnergy(excessEnergy)
 
-	-- are any capacitors set for discharging?
-	-- if so, discharge from capacitors through the laser
-	CapacitorBank.discharge(Laser, dt)
+		-- are any capacitors set for discharging?
+		-- if so, discharge from capacitors through the laser
+		CapacitorBank.discharge(Laser, dt)
 
-	-- sensor display is afffected by radiator temperature.
-	-- Sensor.display(Radiator.temperature)
+		-- sensor display is afffected by radiator temperature.
+		-- Sensor.display(Radiator.temperature)
 
 
-	t = t+dt
-	if t>updaterate then
+		-- grab and store/send the laser sent energy
+		s = Laser:send()
+		for i=1,100,1 do
+			score = score + s[i]
+		end
+
+		t = t-dt
+		if Radiator.temperature > 100 then
+			gameRunning = false
+		end
+
+		if t<0 then
+			gameRunning = false
+		end
 	end
-
 end

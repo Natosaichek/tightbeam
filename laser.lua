@@ -1,10 +1,10 @@
 -- default values for the laser
-local default_spectrum = {}
+local zeroSpectrum = {}
 for i = 1, 100, 1
 do
-	default_spectrum[i] = 0
+	zeroSpectrum[i] = 0
 end
-Laser = {cfreq = 50, deviation = 1, power = 10000, charging = 2000, wasted = 0, sentEnergySpectrum = default_spectrum}
+Laser = {cfreq = 50, deviation = 1, power = 8000, charging = 1500, wasted = 0, sentEnergySpectrum = zeroSpectrum}
 
 function Laser:changeFreq(newFreq)
 	self.cfreq = newFreq
@@ -18,7 +18,7 @@ function Laser:spectrum(energy)
 	-- gaussian power distribution
 	if energy == 0 
 	then
-		return default_spectrum
+		return zeroSpectrum
 	end
 	-- A * e^ ( (-1*(x-B)^2) / (2*C^2) )
 	-- A is height
@@ -41,8 +41,8 @@ end
 function Laser:consume(storedEnergy, dt)
 	-- have to utilize power 
 	consumedEnergy = math.min(storedEnergy, self.power*dt)
+	
 	-- the laser takes the first chunk of power it receives and "wastes" it in charging up the crystals.
-
 	if self.wasted < self.charging then
 		delta = self.charging - self.wasted
 		if consumedEnergy < delta then
@@ -64,7 +64,13 @@ function Laser:consume(storedEnergy, dt)
 end
 
 function Laser:send()
-	self.sentEnergySpectrum = default_spectrum
+	tmpspectrum = {}
+	for i=1,100,1
+	do
+		tmpspectrum[i] = self.sentEnergySpectrum[i]
+		self.sentEnergySpectrum[i] = 0
+	end
+	return tmpspectrum
 end
 
 function Laser:off()
