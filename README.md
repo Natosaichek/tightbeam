@@ -1,5 +1,7 @@
-# tightbeam
+# Tightbeam
+
 com-sat com-bat
+
 FROM ADAM SMITH:
 
 TIGHTBEAM
