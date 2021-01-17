@@ -6,6 +6,13 @@ end
 
 Transreflector = {spectrum = default_spectrum}
 
+function Transreflector:reset()
+	for i = 1, 100, 1
+	do
+		self.spectrum[i] = .99
+	end
+end	
+
 function Transreflector:reflect(incomingspectrum)
 	reflectedspectrum = {}
 	for i, magnitude in ipairs(incomingspectrum) do
@@ -22,9 +29,17 @@ function Transreflector:transmit(incomingspectrum)
 	return transmittedspectrum
 end
 
-function Transreflector:adjustSpectrum(index, magnitude)
-	if magnitude < 0 then 
-		magnitude = 0
+function Transreflector:adjustSpectrum(index, magnitude, spread)
+	if spread < 5 then
+		if magnitude < 0 then 
+			magnitude = 0
+		end
+		self.spectrum[index] = magnitude
+		if index > 1 then
+			self:adjustSpectrum(index-1, (self.spectrum[index-1]+magnitude)/2, spread+1)
+		end
+		if index < 100 then
+			self:adjustSpectrum(index+1, (self.spectrum[index+1]+magnitude)/2, spread+1)
+		end
 	end
-	self.spectrum[index] = magnitude
 end

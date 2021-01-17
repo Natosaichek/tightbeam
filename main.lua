@@ -9,18 +9,26 @@ local radiator = require("radiator")
 
 -- the address and port of the server
 local address, port = "localhost", 343434
-local entity -- entity is what we'll be controlling
 local updaterate = 0.02 -- how long to wait, in seconds, before requesting an update.  We want a fast-twitch game, so 20 ms should be plenty fast.
 local t
 local score
-local gameRunning
+local gameMode = "boot"
 
 -- onetime setup
 function love.load()
 	love.window.setTitle("Tightbeam - Commsat Combat")
+	gameMode = "boot"
+	reset()
+end
+
+function reset()
 	t=120
 	score = 0
-	gameRunning = true
+	Laser:reset()
+	CapacitorBank:reset()
+	Furnace:reset()
+	Transreflector:reset()
+	Radiator:reset()
 end
 
 -- Interface Functions
@@ -36,6 +44,7 @@ function mouseinCircle(x,y,radius)
 	mx, my = love.mouse.getPosition( )
 	return (mx-x)*(mx-x) + (my-y)*(my-y) < radius*radius
 end
+
 
 function printSpectrum(spectrum)
 	x = 400
@@ -82,7 +91,7 @@ function furnaceInterface()
 		if love.mouse.isDown(1) then
 			my = love.mouse.getY()
 			magnitude = ((y+height-my)/height)*Furnace.maxPowerlevel
-			Furnace.setTargetPower(magnitude)
+			Furnace:setTargetPower(magnitude)
 		end
 	end
 	love.graphics.setColor(color[1],color[2],color[3])
@@ -130,7 +139,7 @@ function transreflectorInterface()
 			if love.mouse.isDown(1) then
 				mx = love.mouse.getX()
 				magnitude = (mx-bx) / 100
-				Transreflector:adjustSpectrum(i, magnitude)
+				Transreflector:adjustSpectrum(i, magnitude, 0)
 			end
 		else
 			love.graphics.setColor(.7,.7,.75)
@@ -223,72 +232,48 @@ function capacitorInterface()
 		end
 		love.graphics.circle("fill",c_cx,c_cy,controlRadius,24)
 	end
-
 end
 
-function laserInterface()
-	local x = 233
-	local y = 150
-	local width = 40
-	local height = 304
-	laserFiring = {.98,.2,.6}
-	laserOff = {.7,.1,.5}
-	lasercolor = laserOff
-	if Laser.wasted == Laser.charging then
-		lasercolor = laserFiring
-	end
-	-- if the mouse goes over the box, highlight it.
-	if mouseinBox(x,y,width,height) then
-		love.graphics.setColor(.9, .3, .5)
-	else
-		love.graphics.setColor(lasercolor)
-	end
-	love.graphics.rectangle("line", x, y, width, height)
-	s = Laser:spectrum(1)
-	maxwidth = 32
-	deviationCalibration = math.sqrt(2*math.pi)
-	for i=1,100,1
-	do
-		bx = x+4
-		by = y + i*3
-		bwidth = maxwidth
-		bheight = 2
-		if mouseinBox(bx, by-1, bwidth, bheight+2) then
-			love.graphics.setColor(.9, .3, .5)
-			if love.mouse.isDown(1) then
-				mx = love.mouse.getX()
-				magnitude = (mx-bx)/maxwidth
-				dev = 1/(magnitude*deviationCalibration)
-				Laser:changeDeviation(dev)
-				Laser:changeFreq(i)
-			end
-		else
-			love.graphics.setColor(lasercolor)
-		end
-		barwidth = s[i]*maxwidth
-		love.graphics.rectangle("fill", bx, by, 1, 2)
-		love.graphics.rectangle("fill", bx+1, by, barwidth-1, 2)
+function titlescreen()
+	love.graphics.setColor(1,1,1)
+	love.graphics.print("startgame?",300,50)
+	if love.keyboard.isDown('y') then 
+		gameMode = "play"
 	end
 end
+
+function gameoverscreen()
+	love.graphics.setColor(1,1,1)
+	love.graphics.print("Your score:", 280, 230)
+	love.graphics.print(tostring(score), 300, 250)
+	love.graphics.print("Try again?", 280, 270)
+	if love.keyboard.isDown('y') then
+		reset()
+		gameMode = "play"
+	end
+end
+
 
 -- what to draw on the screen every frame
 function love.draw()
-	if gameRunning then
+	if gameMode == "boot" then
+		titlescreen()
+	elseif gameMode == "play" then
 		radiatorInterface()
 		transreflectorInterface()
 		furnaceInterface()
 		capacitorInterface()
 		laserInterface()
-		love.graphics.print(string.format("%s", tostring(score)), 500, 250)
-		love.graphics.print(string.format("%s", tostring(t)), 500, 220)
-	else
-		love.graphics.print("yourScore:", 280, 230)
-		love.graphics.print(string.format("%s", tostring(score)), 300, 250)
+		love.graphics.setColor(1,1,1)
+		love.graphics.print(tostring(score), 500, 250)
+		love.graphics.print(tostring(t), 500, 220)
+	elseif gameMode == "gameover" then
+		gameoverscreen()
 	end
 end
 
 function love.update(dt)
-	if gameRunning then
+	if gameMode == "play" then
 		--update can be called a lot.  dt is the time since it was last called.
 		-- Power is energy / time.
 		-- energy is power*time
@@ -303,7 +288,7 @@ function love.update(dt)
 		-- any reflected energy has now been reabsorbed.
 
 		-- our furnace takes time to adjust its power level.
-		Furnace.adjustPower(dt)
+		Furnace:adjustPower(dt)
 
 		-- are any capacitors set for charging?
 			-- if so, distribute power from furnace into capacitors, unless it's full.
@@ -327,11 +312,11 @@ function love.update(dt)
 
 		t = t-dt
 		if Radiator.temperature > 100 then
-			gameRunning = false
+			gameMode = "gameover"
 		end
 
 		if t<0 then
-			gameRunning = false
+			gameMode = "gameover"
 		end
 	end
 end

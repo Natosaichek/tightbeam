@@ -5,7 +5,9 @@
 -- gotta find a nice equation that makes good power spectrum curves eventually.
 
 Radiator = {temperature = 5, capacity = 200}
-
+function Radiator:reset()
+	self.temperature = 5
+end
 function Radiator:color()
 	return {1-(Radiator.temperature/100),0,(Radiator.temperature/100)}
 end

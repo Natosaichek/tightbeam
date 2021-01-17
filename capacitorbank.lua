@@ -48,6 +48,12 @@ do
 	CapacitorBank.capacitors[i] = Capacitor:create{}
 end
 
+function CapacitorBank.reset()
+	for i = 1, CapacitorBank.qty, 1
+	do
+		CapacitorBank.capacitors[i] = Capacitor:create{}
+	end
+end
 function CapacitorBank.consumePower(furnace, dt)
 	local chargingcaps = {}
 	for i = 1, CapacitorBank.qty,  1
@@ -110,4 +116,3 @@ function CapacitorBank.discharge(laser, dt)
 		end
 	end
 end
-
