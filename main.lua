@@ -109,45 +109,6 @@ function furnaceInterface()
 	love.graphics.rectangle("fill", x-1, targetpos, width+1, 2)
 end
 
-function transreflectorInterface()
-	-- in this function we'll display the existing transreflector spectrum, and also listen for updates to it from mouse events.
-	-- first we'll set up the position and size of the box
-	local x = 125
-	local y = 150
-	local width = 106
-	local height = 304
-	
-	-- if the mouse goes over the box, highlight it.
-	if mouseinBox(x,y,width,height) then
-		love.graphics.setColor(.8, .8, .9)
-	else
-		love.graphics.setColor(.4, .4, .45)
-	end
-	love.graphics.rectangle("line", x, y, width, height)
-	
-	-- now we'll go through and draw the bars for the transreflector spectrum.
-	barlengths = Transreflector.spectrum
-	for i=1,100,1
-	do
-		bx = x+2
-		by = y+3*i
-		bwidth = width - 4
-		bheight = 2
-		-- if the mouse is over one of the bars, then we highlight that bar and also enable changing the spectrum value.
-		if mouseinBox(bx, by-1, bwidth, bheight+2) then
-			love.graphics.setColor(.9, .9, .95)
-			if love.mouse.isDown(1) then
-				mx = love.mouse.getX()
-				magnitude = (mx-bx) / 100
-				Transreflector:adjustSpectrum(i, magnitude, 0)
-			end
-		else
-			love.graphics.setColor(.7,.7,.75)
-		end
-		love.graphics.rectangle("fill", bx, by, 2, 2)
-		love.graphics.rectangle("fill", bx+2, by, barlengths[i]*100, 2)
-	end
-end
 
 function capacitorInterface()
 	-- depict each capacitor and enable keyboard and mouse control of them.
