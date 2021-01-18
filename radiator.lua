@@ -61,3 +61,18 @@ function Radiator:radiateEnergy(dt)
 	radiatedEnergy = radiated*dt
 	Radiator.temperature = Radiator.temperature - radiatedEnergy/Radiator.capacity
 end
+
+function radiatorInterface(x,y)
+	local width = 104
+	local height = 304
+
+	local lengths = Radiator:spectrum()
+	local color = Radiator.color()
+	love.graphics.setColor(color[1],color[2],color[3])
+	love.graphics.rectangle("line", x, y, width, height)
+	for i=1,100,1
+	do
+		love.graphics.rectangle("fill", x+2, y+3*i, 2, 2)
+		love.graphics.rectangle("fill", x+4, y+3*i, lengths[i], 2)
+	end
+end

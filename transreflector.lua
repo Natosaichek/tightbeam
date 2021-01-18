@@ -48,11 +48,9 @@ function Transreflector:adjustSpectrum(index, magnitude, direction, depth)
 	end
 end
 
-function transreflectorInterface()
+function transreflectorInterface(x,y)
 	-- in this function we'll display the existing transreflector spectrum, and also listen for updates to it from mouse events.
 	-- first we'll set up the position and size of the box
-	local x = 125
-	local y = 150
 	local width = 106
 	local height = 304
 	

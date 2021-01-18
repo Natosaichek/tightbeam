@@ -85,9 +85,7 @@ function Laser:off()
 end
 
 
-function laserInterface()
-	local x = 233
-	local y = 150
+function laserInterface(x,y)
 	local width = 40
 	local height = 304
 	laserFiring = {.98,.2,.6}

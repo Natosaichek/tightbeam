@@ -45,156 +45,6 @@ function mouseinCircle(x,y,radius)
 	return (mx-x)*(mx-x) + (my-y)*(my-y) < radius*radius
 end
 
-
-function printSpectrum(spectrum)
-	x = 400
-	y = 20
-	for i=1,100,1
-	do
-		love.graphics.print(tostring(spectrum[i]), x, y+i*9)
-	end
-end
-
-
-function radiatorInterface()
-	local x = 16
-	local y = 150
-	local width = 104
-	local height = 304
-
-	local lengths = Radiator:spectrum()
-	local color = Radiator.color()
-	love.graphics.setColor(color[1],color[2],color[3])
-	love.graphics.rectangle("line", x, y, width, height)
-	for i=1,100,1
-	do
-		love.graphics.rectangle("fill", x+2, y+3*i, 2, 2)
-		love.graphics.rectangle("fill", x+4, y+3*i, lengths[i], 2)
-	end
-end
-
-function furnaceInterface()
-	local ox = 2
-	local oy = 150
-	local owidth = 12
-	local oheight = 304
-	local margin = 2
-	local x = 2+margin
-	local y = 150+margin
-	local width = 12-2*margin
-	local height = 304-2*margin
-	local color = {.4,.6,.4}
-	if mouseinBox(x,y,width,height) then
-		color[1] = 1+color[1]/2
-		color[2] = 1+color[2]/2
-		color[3] = 1+color[3]/2
-		if love.mouse.isDown(1) then
-			my = love.mouse.getY()
-			magnitude = ((y+height-my)/height)*Furnace.maxPowerlevel
-			Furnace:setTargetPower(magnitude)
-		end
-	end
-	love.graphics.setColor(color[1],color[2],color[3])
-	love.graphics.rectangle("line", x, y, width, height)
-	-- draw the background of the power gauge
-	love.graphics.setColor(.1,.1,.1)
-	love.graphics.rectangle("fill", x, y, width, height)
-	-- draw a rectangle indicating the current power level
-	powerheight = (Furnace.powerlevel*height/Furnace.maxPowerlevel)
-	love.graphics.setColor(.1,.6,.1)
-	love.graphics.rectangle("fill", x, y+height-powerheight, width, powerheight)
-	-- draw a line across indicating the target power level
-	targetpos = y + height * (1-(Furnace.targetPowerlevel/Furnace.maxPowerlevel))
-	love.graphics.setColor(.2,.8,.2)
-	love.graphics.rectangle("fill", x-1, targetpos, width+1, 2)
-end
-
-
-function capacitorInterface()
-	-- depict each capacitor and enable keyboard and mouse control of them.
-	local x = 2
-	local y = 460
-	local capradius = 20
-	local controlRadius = capradius/2
-	local margin = 10
-	local width = (capradius*2+margin)*CapacitorBank.qty+margin
-	local height = (capradius+margin)*2
-
-	capChargeColor = {.7,.5,.1}
-	capChargeSelectedColor = {.8,.7,.3}
-	capDischargeColor = {.1,.5,.7}
-	capDischargeSelectedColor = {.3,.7,.8}
-	capDisabledColor = {.4,.4,.4}
-	capDisabledSelectedColor = {.6,.6,.6}
-	-- if the mouse goes over the box, highlight it.
-	if mouseinBox(x,y,width,height) then
-		love.graphics.setColor(.4, .4, .9)
-	else
-		love.graphics.setColor(.2, .2, .6)
-	end
-	love.graphics.rectangle("line", x, y, width, height)
-	for i,c in ipairs(CapacitorBank.capacitors)
-	do
-		cx = x + i*(capradius*2+margin) - capradius
-		cy = y + (capradius+margin)
-		fillratio = c.stored/c.capacity
-		fillradius = capradius*fillratio
-		if c.charging then
-			love.graphics.setColor({.5,.3,.05})
-		elseif c.discharging then
-			love.graphics.setColor({.05,.3,.5})
-		else
-			love.graphics.setColor(capDisabledColor)			
-		end
-		love.graphics.circle("fill",cx,cy,fillradius,36)
-
-		-- for each capacitor, highlight the perimeter appropriately to how the cap is.
-		if mouseinCircle(cx,cy,capradius) then
-			if c.charging then
-				love.graphics.setColor(capChargeSelectedColor)
-			elseif c.discharging then
-				love.graphics.setColor(capDischargeSelectedColor)
-			else
-				love.graphics.setColor(capDisabledSelectedColor)
-			end
-		else
-			if c.charging then
-				love.graphics.setColor(capChargeColor)
-			elseif c.discharging then
-				love.graphics.setColor(capDischargeColor)
-			else
-				love.graphics.setColor(capDisabledColor)			
-			end
-		end
-		love.graphics.circle("line",cx,cy,capradius,36)
-		-- now draw the 'charge' and 'discharge' selection buttons
-		dc_cx = cx-(capradius/2)
-		dc_cy = cy
-		if mouseinCircle(dc_cx,dc_cy,controlRadius) then
-			love.graphics.setColor(capDischargeSelectedColor)
-			if love.mouse.isDown(1) then
-				c:setDischarging()
-			end
-		else
-			love.graphics.setColor(capDischargeColor)
-		end
-		love.graphics.circle("fill",dc_cx,dc_cy,controlRadius,24)
-
-		c_cx = cx+(capradius/2)
-		c_cy = cy
-		if mouseinCircle(c_cx,c_cy,controlRadius) then
-			changestate = false
-			love.graphics.setColor(capChargeSelectedColor)
-			if love.mouse.isDown(1) then
-				c:setCharging()
-			end
-		else
-			love.graphics.setColor(capChargeColor)
-		end
-		love.graphics.circle("fill",c_cx,c_cy,controlRadius,24)
-	end
-end
-
 function titlescreen()
 	love.graphics.setColor(1,1,1)
 	love.graphics.print("startgame?",300,50)
@@ -214,17 +64,16 @@ function gameoverscreen()
 	end
 end
 
-
 -- what to draw on the screen every frame
 function love.draw()
 	if gameMode == "boot" then
 		titlescreen()
 	elseif gameMode == "play" then
-		radiatorInterface()
-		transreflectorInterface()
-		furnaceInterface()
-		capacitorInterface()
-		laserInterface()
+		furnaceInterface(2,150)
+		radiatorInterface(16,150)
+		transreflectorInterface(125, 150)
+		laserInterface(233,150)
+		capacitorInterface(2,460)
 		love.graphics.setColor(1,1,1)
 		love.graphics.print(tostring(score), 500, 250)
 		love.graphics.print(tostring(t), 500, 220)
@@ -264,18 +113,18 @@ function love.update(dt)
 		-- sensor display is afffected by radiator temperature.
 		-- Sensor.display(Radiator.temperature)
 
-
 		-- grab and store/send the laser sent energy
 		s = Laser:send()
+
 		for i=1,100,1 do
 			score = score + s[i]
 		end
-
-		t = t-dt
+		
 		if Radiator.temperature > 100 then
 			gameMode = "gameover"
 		end
 
+		t = t-dt
 		if t<0 then
 			gameMode = "gameover"
 		end
