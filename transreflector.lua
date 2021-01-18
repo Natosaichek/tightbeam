@@ -1,7 +1,7 @@
 local default_spectrum = {}
 for i = 1, 100, 1
 do
-	default_spectrum[i] = .99
+	default_spectrum[i] = 1-i/100
 end
 
 Transreflector = {spectrum = default_spectrum}
@@ -9,7 +9,7 @@ Transreflector = {spectrum = default_spectrum}
 function Transreflector:reset()
 	for i = 1, 100, 1
 	do
-		self.spectrum[i] = .99
+		self.spectrum[i] = 1-i/100
 	end
 end	
 
@@ -66,12 +66,12 @@ function transreflectorInterface(x,y)
 	barlengths = Transreflector.spectrum
 	local displayLaser = {}
 
-	if op_laser == nil then 
+	if parsedLaser == nil then 
 		for i=1,100,1 do		
 			displayLaser[i] = 0
 		end
 	else
-		displayLaser = op_laser
+		displayLaser = parsedLaser
 	end
 
 	for i=1,100,1
@@ -91,7 +91,8 @@ function transreflectorInterface(x,y)
 		else
 			love.graphics.setColor(.7,.7,.75)
 		end
-		if displayLaser[i] > 0 then 
+
+		if displayLaser[i] > 10 then
 			love.graphics.setColor(.7,.5,.45)
 		end
 

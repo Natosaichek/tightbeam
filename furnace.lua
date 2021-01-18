@@ -1,5 +1,5 @@
 -- Nuclear Furnace
-Furnace = {powerlevel = 0, targetPowerlevel = 0, maxRate = 4, maxPowerlevel = 5000}
+Furnace = {powerlevel = 100, targetPowerlevel = 100, maxRate = 4, maxPowerlevel = 5000}
 
 function Furnace:reset()
 	self.powerlevel = 0

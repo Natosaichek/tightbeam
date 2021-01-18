@@ -10,8 +10,9 @@ local radiator = require("radiator")
 -- the address and port of the server
 local address, port = "localhost", 343434
 local updaterate = 0.02 -- how long to wait, in seconds, before requesting an update.  We want a fast-twitch game, so 20 ms should be plenty fast.
-local t
+local game_t
 local net_t
+local sensor_t
 local score
 local gameMode = "boot"
 local netMode = "boot"
@@ -27,7 +28,8 @@ function love.load()
 end
 
 function reset()
-	t=120
+	game_t = 820
+	sensor_t = 0
 	net_t = 0
 	score = 0
 	Laser:reset()
@@ -49,6 +51,16 @@ end
 function mouseinCircle(x,y,radius)
 	mx, my = love.mouse.getPosition( )
 	return (mx-x)*(mx-x) + (my-y)*(my-y) < radius*radius
+end
+
+function displaySpectrum(spectrum, x,y)
+	if spectrum ~= nil then
+		for i=1,100,1 do
+			px = x
+			py = y+9*i
+			love.graphics.print(tostring(spectrum[i]),px,py)
+		end
+	end
 end
 
 function titlescreen()
@@ -100,8 +112,10 @@ function love.draw()
 		capacitorInterface(2,460)
 		sensorInterface(350,150)
 		love.graphics.setColor(1,1,1)
-		love.graphics.print(tostring(score), 500, 250)
-		love.graphics.print(tostring(t), 500, 220)
+		love.graphics.print(tostring(game_t), 500, 50)
+		love.graphics.print(tostring(score), 500, 70)
+		-- displaySpectrum(laserEnergySpectrum, 500,90)
+		-- love.graphics.print(tostring(transreflectorSend), 500, 30)
 	elseif gameMode == "gameover" then
 		gameoverscreen()
 	end
@@ -142,23 +156,34 @@ function love.update(dt)
 		-- Sensor.display(Radiator.temperature)
 
 		-- grab and store/send the laser sent energy
-		local laserEnergySpectrum = Laser:send()
+		laserEnergySpectrum = Laser:send()
 
-		for i=1,100,1 do
-			score = score + laserEnergySpectrum[i]
+
+
+		if parsedLaser ~= nil then
+			for i=1,100,1 do
+				score = score + parsedLaser[i]
+			end
+			laserIncident = Transreflector:transmit(parsedLaser)
+			Radiator:addEnergySpectrum(laserIncident)
+			parsedLaser = nil
 		end
+
+		-- for i=1,100,1 do
+		-- 	score = score + laserEnergySpectrum[i]
+		-- end
 		
 		if Radiator.temperature > 100 then
 			gameMode = "gameover"
 		end
 
-		t = t-dt
-		if t<0 then
+		game_t = game_t-dt
+		sensor_t = sensor_t+dt
+		if game_t < 0 then
 			gameMode = "gameover"
 		end
 	end
 	net_t = net_t + dt
-	
 	if netMode == "server" then
 		-- wait for the client to connect
 		if not connected then
@@ -170,14 +195,14 @@ function love.update(dt)
 		
 		if (net_t > updaterate and connected == true) then
 			-- parse received data
-			-- opponent,err = receive()
-			-- op_state = parse(opponent,err)
-			-- op_laser = op_state[1]
-			-- op_transreflector = op_state[2]
+			opponent,err = receive()
+			parsedState = parse(opponent,err)
+			parsedLaser = parsedState[1]
+			parsedTransreflector = parsedState[2]
 			-- send data
-			-- laserSend = serializeSpectrum("laser",laserEnergySpectrum)
-			-- transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
-			-- transmit(laserSend..";"..transreflectorSend..";"..tostring(t).."\n")
+			laserSend = serializeSpectrum("laser",laserEnergySpectrum)
+			transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
+			transmit(laserSend..";"..transreflectorSend..";"..tostring(t).."\n")
 			net_t = 0
 		end
 	end
@@ -193,15 +218,17 @@ function love.update(dt)
 		-- send and request data
 		if (net_t > updaterate and connected == true) then
 			-- send data
-			-- laserSend = serializeSpectrum("laser",laserEnergySpectrum)
+			laserSend = serializeSpectrum("laser",laserEnergySpectrum)
 			transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
-			-- transmit(laserSend..";"..transreflectorSend..";"..tostring(t).."\n")
-			-- -- parse received data
-			-- opponent,err = receive()
-			-- op_state = parse(opponent,err)
-			-- op_laser = op_state[1]
-			-- op_transreflector = op_state[2]
-			-- op_time = op_state[3]
+			deserialized = deserializeSpectrum(transreflectorSend)
+			sendstring = laserSend..";"..transreflectorSend..";"..tostring(t).."\n"
+			transmit(sendstring)
+			-- 
+			-- parse received data
+			opponent,err = receive()
+			parsedState = parse(opponent,err)
+			parsedLaser = parsedState[1]
+			parsedTransreflector = parsedState[2]
 			net_t = 0
 			-- t = op_time
 		end

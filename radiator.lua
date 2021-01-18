@@ -33,6 +33,14 @@ function Radiator:spectrum()
 	return s
 end
 
+function Radiator:addEnergySpectrum(spectrum)
+	local totalEnergy = 0
+	for i,v in ipairs(spectrum) do
+		totalEnergy = totalEnergy + v
+	end
+	Radiator.temperature = Radiator.temperature + totalEnergy/Radiator.capacity
+end
+
 function Radiator:addPowerSpectrum(spectrum,dt)
 	local totalPower = 0
 	for i,v in ipairs(spectrum) do
