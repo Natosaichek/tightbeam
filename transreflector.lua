@@ -1,7 +1,7 @@
 local default_spectrum = {}
 for i = 1, 100, 1
 do
-	default_spectrum[i] = 1-i/100
+	default_spectrum[i] = .5
 end
 
 Transreflector = {spectrum = default_spectrum}
@@ -9,7 +9,7 @@ Transreflector = {spectrum = default_spectrum}
 function Transreflector:reset()
 	for i = 1, 100, 1
 	do
-		self.spectrum[i] = 1-i/100
+		self.spectrum[i] = .5
 	end
 end	
 

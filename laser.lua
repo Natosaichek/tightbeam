@@ -1,10 +1,7 @@
+spec = require("spectrum")
 -- default values for the laser
-local zeroSpectrum = {}
-for i = 1, 100, 1
-do
-	zeroSpectrum[i] = 0
-end
-Laser = {cfreq = 50, deviation = 1, power = 8000, charging = 1500, wasted = 0, sentEnergySpectrum = zeroSpectrum}
+
+Laser = {cfreq = 50, deviation = 1, power = 8000, charging = 1500, wasted = 0, sentEnergySpectrum = Spectrum.zeroSpectrum()}
 
 function Laser:reset()
 	self.cfreq = 50
@@ -25,7 +22,7 @@ function Laser:spectrum(energy)
 	-- gaussian power distribution
 	if energy == 0 
 	then
-		return zeroSpectrum
+		return Spectrum.zeroSpectrum()
 	end
 	-- A * e^ ( (-1*(x-B)^2) / (2*C^2) )
 	-- A is height
@@ -71,13 +68,9 @@ function Laser:consume(storedEnergy, dt)
 end
 
 function Laser:send()
-	tmpspectrum = {}
-	for i=1,100,1
-	do
-		tmpspectrum[i] = self.sentEnergySpectrum[i]
-		self.sentEnergySpectrum[i] = 0
-	end
-	return tmpspectrum
+	local out = Spectrum.copy(self.sentEnergySpectrum)
+	self.sentEnergySpectrum = Spectrum.zeroSpectrum()
+	return out
 end
 
 function Laser:off()

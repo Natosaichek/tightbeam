@@ -11,8 +11,7 @@ local radiator = require("radiator")
 local address, port = "localhost", 343434
 local updaterate = 0.02 -- how long to wait, in seconds, before requesting an update.  We want a fast-twitch game, so 20 ms should be plenty fast.
 local game_t
-local net_t
-local sensor_t
+local net_t 
 local score
 local gameMode = "boot"
 local netMode = "boot"
@@ -153,7 +152,7 @@ function love.update(dt)
 		CapacitorBank.discharge(Laser, dt)
 
 		-- sensor display is afffected by radiator temperature.
-		-- Sensor.display(Radiator.temperature)
+		Sensor:updateDisplay(Radiator.temperature)
 
 		-- grab and store/send the laser sent energy
 		laserEnergySpectrum = Laser:send()
