@@ -64,6 +64,16 @@ function transreflectorInterface(x,y)
 	
 	-- now we'll go through and draw the bars for the transreflector spectrum.
 	barlengths = Transreflector.spectrum
+	local displayLaser = {}
+
+	if op_laser == nil then 
+		for i=1,100,1 do		
+			displayLaser[i] = 0
+		end
+	else
+		displayLaser = op_laser
+	end
+
 	for i=1,100,1
 	do
 		bx = x+2
@@ -81,6 +91,10 @@ function transreflectorInterface(x,y)
 		else
 			love.graphics.setColor(.7,.7,.75)
 		end
+		if displayLaser[i] > 0 then 
+			love.graphics.setColor(.7,.5,.45)
+		end
+
 		love.graphics.rectangle("fill", bx, by, 2, 2)
 		love.graphics.rectangle("fill", bx+2, by, barlengths[i]*100, 2)
 	end
