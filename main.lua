@@ -1,5 +1,6 @@
 local network = require("network")
 
+local spec = require("spectrum")
 local sensor = require("sensor")
 local laser = require("laser")
 local capacitorbank = require("capacitorbank")
@@ -103,6 +104,8 @@ end
 function love.draw()
 	if gameMode == "boot" then
 		titlescreen()
+	elseif gameMode == "menu" then
+		menu()
 	elseif gameMode == "play" then
 		furnaceInterface(2,150)
 		radiatorInterface(16,150)
@@ -183,6 +186,11 @@ function love.update(dt)
 		end
 	end
 	net_t = net_t + dt
+	if netMode == "none" then
+		parsedLaser = Spectrum.zeroSpectrum()
+		parsedTransreflector = Spectrum.zeroSpectrum()
+	end
+
 	if netMode == "server" then
 		-- wait for the client to connect
 		if not connected then
