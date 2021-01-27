@@ -1,4 +1,5 @@
 local network = require("network")
+local tb = require("textboxes")
 
 local spec = require("spectrum")
 local sensor = require("sensor")
@@ -10,21 +11,24 @@ local radiator = require("radiator")
 
 -- the address and port of the server
 local address, port = "localhost", 343434
-local updaterate = 0.02 -- how long to wait, in seconds, before requesting an update.  We want a fast-twitch game, so 20 ms should be plenty fast.
+local updaterate = 0.05 -- how long to wait, in seconds, before requesting an update.  Fifty ms should be plenty fast... 20 updates/sec of the oponent's actions is pretty reasonable.
 local game_t
 local net_t 
 local score
 local gameMode = "boot"
-local netMode = "boot"
-local title = "playercount"
-local connected = false
+local title = "splash"
+
+netMode = "boot"
+connected = false
+connecting = false
 
 -- onetime setup
 function love.load()
 	love.window.setTitle("Tightbeam - Commsat Combat")
 	gameMode = "boot"
 	reset()
-	-- server.start()
+	MenuFont = love.graphics.newFont("ArizoneUnicaseRegular-5dRZ.ttf", 14)
+	love.graphics.setFont(MenuFont)
 end
 
 function reset()
@@ -63,29 +67,48 @@ function displaySpectrum(spectrum, x,y)
 	end
 end
 
+--
+
+
 function titlescreen()
 	love.graphics.setColor(1,1,1)
+	if title == "splash" then
+		w_width, w_height, flags = love.window.getMode()
+		splashscreen = love.graphics.newImage("TightBeamSplashScreenClean.png")
+		scale_x = w_width/splashscreen:getWidth()
+		scale_y = w_height/splashscreen:getHeight()
+		-- if we're scaling x more, then the window width is really wide, and we should use the _height_ scaling of the image.  
+		-- if we're scaling y more, then the window height is really tall, and we should use the _width_ scaling of the image.  
+		if scale_x > scale_y then
+			scale = scale_y
+			x_margin = (w_width - scale*splashscreen:getWidth())/2
+			y_margin = 0
+		else
+			scale = scale_x
+			y_margin = (w_height - scale*splashscreen:getHeight())/2
+			x_margin = 0
+		end
+		rotation = 0
+		-- now that we've got it scaled so it will fit, we should center it.
+		love.graphics.draw(splashscreen, x_margin, y_margin, rotation, scale, scale)
+
+		if love.keyboard.isDown('space') or love.keyboard.isDown('return') then 
+			title = "playercount"
+		end
+	end
 	if title == "playercount" then
 		love.graphics.print("(m)ultiplayer or ",300,50)
 		love.graphics.print("(s)ingleplayer?",300,70)
 		if love.keyboard.isDown('s') then
 			netMode = "none"
-			-- aiPlayer.start()
+			gameMode = "play"
 		end
 		if love.keyboard.isDown('m') then
 			title = "multiplayer"
 		end
 	end
 	if title == "multiplayer" then
-		love.graphics.print("(h)ost or ",300,50)
-		love.graphics.print("(c)onnect?",300,70)
-		if love.keyboard.isDown('h') then
-			netMode = "server"
-		end
-		if love.keyboard.isDown('c') then
-			netMode = "client"
-		end
-		-- title = netMode
+		networkingInterface()
 	end
 end
 
@@ -121,12 +144,11 @@ function love.draw()
 	elseif gameMode == "gameover" then
 		gameoverscreen()
 	end
+	-- make sure our textbox ui elements get drawn
+	Textboxes.draw()
 end
 
 function love.update(dt)
-	if netMode == "none" then
-		gameMode = "play"
-	end
 	if gameMode == "play" then
 		--update can be called a lot.  dt is the time since it was last called.
 		-- Power is energy / time.
@@ -191,15 +213,7 @@ function love.update(dt)
 		parsedTransreflector = Spectrum.zeroSpectrum()
 	end
 
-	if netMode == "server" then
-		-- wait for the client to connect
-		if not connected then
-			serverWaitForConnection()
-			-- once client is connected, switch game to play mode and start the timer.
-			gameMode = "play"
-			connected = true
-		end
-		
+	if netMode == "server" and  gameMode == "play" then
 		if (net_t > updaterate and connected == true) then
 			-- parse received data
 			opponent,err = receive()
@@ -214,14 +228,7 @@ function love.update(dt)
 		end
 	end
 	
-	if netMode == "client" then 
-		-- connect to the server
-		if not connected then
-			connectToServer()
-			-- once connection confirmed, switch game to play mode
-			gameMode = "play"
-			connected = true
-		end
+	if netMode == "client" and gameMode == "play" then
 		-- send and request data
 		if (net_t > updaterate and connected == true) then
 			-- send data

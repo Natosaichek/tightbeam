@@ -1,19 +1,20 @@
 local socket = require("socket")
-local ip = "localhost"
-local port = 71647
+local tb = require("textboxes")
+
 local client
+local spinner = 0
+local netthread
 
 
-function serverWaitForConnection()
-  server = assert(socket.bind(ip, port))
-  client = server:accept()
-  client:settimeout(4)
-  return server
+function startServer(ip, port)
+  netthread = love.thread.newThread("server.lua")
+  netthread:start(ip,port)
+
 end
 
-function connectToServer()
-  client = socket.connect(ip,port)
-  client:settimeout(4)
+function connectToServer(ip, port)
+  netthread = love.thread.newThread("client.lua")
+  netthread:start(ip,port)
 end
 
 function transmit(str)
@@ -78,34 +79,160 @@ function parse(str, err)
   end
 end
 
+-- Interface for the networking stuff
+
+function networkingInterface()
+  love.graphics.setColor(1,1,1)
+  -- love.graphics.print(netMode,100,50)
+  if netMode == "boot" then
+    love.graphics.print("(h)ost or ",300,50)
+    love.graphics.print("(c)onnect?",300,70)
+    if love.keyboard.isDown('h') then
+      netMode = "server"
+    end
+    if love.keyboard.isDown('c') then
+      netMode = "client"
+    end
+  end
+  if not connected then
+    if netMode == "client" then
+      if not connecting then 
+        clientConnectInterface()
+
+      else 
+        waitingInterface("connecting")
+      end
+    end
+    if netMode == "server" then 
+      if not connecting then 
+        serverHostInterface()
+      else 
+        waitingInterface("waiting...")
+      end
+    end
+  else
+    gameMode = "play"
+  end
+end
 
 
--- local utf8 = require("utf8")
- 
--- function love.load()
---     text = "Type away! -- "
- 
---     -- enable key repeat so backspace can be held down to trigger love.keypressed multiple times.
---     love.keyboard.setKeyRepeat(true)
--- end
- 
--- function love.textinput(t)
---     text = text .. t
--- end
- 
--- function love.keypressed(key)
---     if key == "backspace" then
---         -- get the byte offset to the last UTF-8 character in the string.
---         local byteoffset = utf8.offset(text, -1)
- 
---         if byteoffset then
---             -- remove the last UTF-8 character.
---             -- string.sub operates on bytes rather than UTF-8 characters, so we couldn't do string.sub(text, 1, -2).
---             text = string.sub(text, 1, byteoffset - 1)
---         end
---     end
--- end
- 
--- function love.draw()
---     love.graphics.printf(text, 0, 0, love.graphics.getWidth())
--- end
+ipTextbox = Textboxes.create{}
+ipTextbox.text="localhost"
+ipTextbox.textcolor={.5,1,.5}
+ipTextbox.bgcolor={.05,.15,.05}
+ipTextbox.focuscolor={.1,.2,.1}
+ipTextbox.x=200
+ipTextbox.y=100
+ipTextbox.width=15*20
+ipTextbox.height=20
+ipTextbox.focussed=false
+ipTextbox.visible=false
+
+portTextbox = Textboxes.create{}
+portTextbox.text="71647"
+portTextbox.textcolor={.5,1,.5}
+portTextbox.bgcolor={.05,.15,.05}
+portTextbox.focuscolor={.1,.2,.1}
+portTextbox.x=200
+portTextbox.y=130
+portTextbox.width=5*20
+portTextbox.height=20
+portTextbox.focussed=false
+portTextbox.visible=false
+
+function connectButton()
+  local bx = 200
+  local by = 200
+  local bwidth = 200
+  local bheight = 40
+  local framecolor = {.3,.5,.3}
+  local bgcolor = {.3,.5,.3}
+  local textcolor = {.5,1,.5}
+  local mx, my = love.mouse.getPosition()
+  
+  if mouseinBox(bx,by,bwidth,bheight) then
+    framecolor = {.4,.6,.4}
+    if love.mouse.isDown(1) and not connecting then
+      connectToServer(ipTextbox.text,portTextbox.text)
+      connecting = true
+    end
+  end
+  love.graphics.setColor(framecolor)
+  love.graphics.rectangle("line", bx, by, bwidth, bheight)
+  love.graphics.setColor(bgcolor)
+  love.graphics.rectangle("fill", bx, by, bwidth, bheight)
+  love.graphics.setColor(textcolor)
+  love.graphics.print("Connect",bx+5,by+5)
+end
+
+function hostButton()
+  local bx = 200
+  local by = 200
+  local bwidth = 200
+  local bheight = 40
+  local framecolor = {.3,.5,.3}
+  local bgcolor = {.3,.5,.3}
+  local textcolor = {.5,1,.5}
+  local mx, my = love.mouse.getPosition()
+  
+  if mouseinBox(bx,by,bwidth,bheight) then
+    framecolor = {.4,.6,.4}
+    if love.mouse.isDown(1) and not connecting then
+      startServer(ipTextbox.text,portTextbox.text)
+      connecting = true
+    end
+  end
+  love.graphics.setColor(framecolor)
+  love.graphics.rectangle("line", bx, by, bwidth, bheight)
+  love.graphics.setColor(bgcolor)
+  love.graphics.rectangle("fill", bx, by, bwidth, bheight)
+  love.graphics.setColor(textcolor)
+  love.graphics.print("Host",bx+30,by+5)
+end
+
+function averageColors(c1,c2,percent)
+  out = {0,0,0}
+  for i=1,3,1 do
+    out[i] = c1[i] + (c1[i] - c2[i])*percent/100
+  end
+  return out
+end
+
+function waitingInterface(message)
+  -- have some nice "waiting for connection" animation
+  local error = netthread:getError()
+  assert( not error, error )
+  client = love.thread.getChannel('server'):pop()
+  if client then
+    connected = true
+  end
+  -- have some nice "attempting to connect" animation run until the 'connect to server' call completes successfully
+  local bx = 200
+  local by = 200
+  local bwidth = 200
+  local bheight = 40
+  local framecolor = {.3,.5,.3}
+  local bgcolor = {.05,.3,.05}
+  local topbgcolor = {.3,.7,.3}
+  local tmpbgcolor = averageColors(topbgcolor,bgcolor,spinner)
+  spinner = (spinner + 1)%100
+  local textcolor = {.5,1,.5}
+  love.graphics.setColor(framecolor)
+  love.graphics.rectangle("line", bx, by, bwidth, bheight)
+  love.graphics.setColor(tmpbgcolor)
+  love.graphics.rectangle("fill", bx, by, bwidth, bheight)
+  love.graphics.setColor(textcolor)
+  love.graphics.print(message,bx+5,by+5)
+end
+
+function clientConnectInterface()
+  ipTextbox:show()
+  portTextbox:show()
+  connectButton()
+end
+
+function serverHostInterface()
+  ipTextbox:show()
+  portTextbox:show()
+  hostButton()
+end
