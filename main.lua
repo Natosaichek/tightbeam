@@ -15,8 +15,8 @@ local updaterate = 0.05 -- how long to wait, in seconds, before requesting an up
 local game_t
 local net_t 
 local score
-local gameMode = "boot"
-local title = "splash"
+gameMode = "boot"  -- game mode state gets manipulated in other interfaces (eg. networkInterface)
+title = "splash"   -- title mdoe state also gets manipulated 
 
 netMode = "boot"
 connected = false

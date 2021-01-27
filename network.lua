@@ -1,33 +1,36 @@
 local socket = require("socket")
 local tb = require("textboxes")
 
-local client
 local spinner = 0
 local netthread
-
+local clientChannel = love.thread.getChannel ( 'client' );
 
 function startServer(ip, port)
   netthread = love.thread.newThread("server.lua")
   netthread:start(ip,port)
-
 end
-
 function connectToServer(ip, port)
   netthread = love.thread.newThread("client.lua")
   netthread:start(ip,port)
 end
 
-function transmit(str)
-  client:send(str)
+function receive()
+  clientChannel:push({cmd="rx"})
+  msg = clientChannel:demand()
+  return msg.data, msg.error
 end
 
-function receive(str)
-  local line, err = client:receive()
-  return line,err
+function transmit(data)
+  clientChannel:push({cmd="tx",data=data})
+  msg = clientChannel:demand()
 end
 
 function closeConnection()
-  client:close()
+  clientChannel:push({cmd="die"})
+  clientChannel:demand(3)
+  if netthread.isRunning then 
+    netthread:kill()
+  end
 end
 
 function serializeSpectrum(descriptor,spectrum)
@@ -98,7 +101,6 @@ function networkingInterface()
     if netMode == "client" then
       if not connecting then 
         clientConnectInterface()
-
       else 
         waitingInterface("connecting")
       end
@@ -111,6 +113,7 @@ function networkingInterface()
       end
     end
   else
+    print("got connected")
     gameMode = "play"
   end
 end
@@ -201,8 +204,12 @@ end
 function waitingInterface(message)
   -- have some nice "waiting for connection" animation
   local error = netthread:getError()
+  print("error:")
+  print(error)
   assert( not error, error )
-  client = love.thread.getChannel('server'):pop()
+  client = clientChannel:pop()
+  print("client:")
+  print(client)
   if client then
     connected = true
   end
