@@ -26,13 +26,13 @@ function receive()
 end
 
 function transmit(tdata)
-  print("data:"..tdata)
+  -- print("data:"..tdata)
   clientChannel:supply({cmd="tx",data=tdata})
   clientChannel:demand() -- just a way to wait until the thread indicates it's done sending
 end
 
 function closeConnection()
-  clientChannel:push({cmd="die"})
+  clientChannel:supply({cmd="die"})
   clientChannel:demand(3)
   if netthread.isRunning then 
     netthread:kill()
@@ -203,7 +203,7 @@ end
 function averageColors(c1,c2,percent)
   out = {0,0,0}
   for i=1,3,1 do
-    out[i] = c1[i] + (c1[i] - c2[i])*percent/100
+    out[i] = c1[i] + (c2[i] - c1[i])*percent/100
   end
   return out
 end
@@ -218,6 +218,7 @@ function waitingInterface(message)
   print("client:"..tostring(client))
   if client then
     connected = true
+    net_t = 0
   end
   -- have some nice "attempting to connect" animation run until the 'connect to server' call completes successfully
   local bx = 200
@@ -225,10 +226,10 @@ function waitingInterface(message)
   local bwidth = 200
   local bheight = 40
   local framecolor = {.3,.5,.3}
-  local bgcolor = {.05,.3,.05}
-  local topbgcolor = {.3,.7,.3}
+  local bgcolor = {.05,.2,.05}
+  local topbgcolor = {.1,.6,.1}
   local tmpbgcolor = averageColors(topbgcolor,bgcolor,spinner)
-  spinner = (spinner + 1)%100
+  spinner = (spinner + 3)%100
   local textcolor = {.5,1,.5}
   love.graphics.setColor(framecolor)
   love.graphics.rectangle("line", bx, by, bwidth, bheight)

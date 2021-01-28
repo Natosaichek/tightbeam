@@ -13,8 +13,8 @@ local radiator = require("radiator")
 local address, port = "localhost", 343434
 local updaterate = 0.05 -- how long to wait, in seconds, before requesting an update.  Fifty ms should be plenty fast... 20 updates/sec of the oponent's actions is pretty reasonable.
 local game_t
-local net_t 
 local score
+net_t = 0
 gameMode = "boot"  -- game mode state gets manipulated in other interfaces (eg. networkInterface)
 title = "splash"   -- title mdoe state also gets manipulated 
 
