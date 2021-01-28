@@ -2,20 +2,31 @@ local socket = require("socket")
 local ip, port = ...
 local clientChannel = love.thread.getChannel ( 'client' );
 
-client = socket.connect(ip, port)
--- client:settimeout(4)
-clientChannel:push({cmd="noop"})
+local client = socket.connect(ip, port)
+-- client:setoption("keepalive", true)
+-- client:settimeout(10)
+client:send("ping\n")
+local pong,err = client:receive()
+print("rcvd:"..pong)
+clientChannel:supply(true)
+
+
+
+
+
 
 
 while(true) do
-	socket.sleep(0.01)
-	msg = clientChannel:pop()
-	-- print(":::")
-	-- print(msg)
+	local msg = clientChannel:demand()
 	if msg then 
+		print(msg.cmd)
 		if msg.cmd == "rx" then
-			line,err = client:receive()
-			clientChannel:push({cmd = "rx", data=line, error=error})
+			local line,err = client:receive()
+			if err then 
+				print("error:")
+				print(err)
+			end		
+			clientChannel:push({cmd = "rx", data=line, error=err})
 		end
 		if msg.cmd == "tx" then
 			client:send(cmd.data)

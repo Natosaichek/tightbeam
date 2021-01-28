@@ -4,21 +4,23 @@ spec = require("spectrum")
 Sensor = {refresh = .5, quality = .9, deltat = .01, last_update = 0, lastSpectrum = Spectrum.zeroSpectrum(), currentRefresh = .5}
 sensor_t = 0
 
-function Sensor:updateDisplay(temperature)
+function Sensor:updateDisplay(temperature, transreflector)
 	-- at best conditions, we update our display of the enemy shield spectrum fully every "refresh" period
 	-- as we warm up, the refresh period increases and our probability of getting a full read on the enemy shield decreases
-	self.currentRefresh = self.refresh + temperature*self.deltat
-	outspectrum = Spectrum.zeroSpectrum()
-	if sensor_t > self.currentRefresh then
-		sensor_t = 0
-		for i=1,100,1 do
-			if (love.math.random() < (self.quality-(self.deltat*temperature))) then
-				outspectrum[i] = parsedTransreflector[i]
-			else
-				outspectrum[i] = -1
+	if transreflector then 
+		self.currentRefresh = self.refresh + temperature*self.deltat
+		outspectrum = Spectrum.zeroSpectrum()
+		if sensor_t > self.currentRefresh then
+			sensor_t = 0
+			for i=1,100,1 do
+				if (love.math.random() < (self.quality-(self.deltat*temperature))) then
+					outspectrum[i] = transreflector[i]
+				else
+					outspectrum[i] = -1
+				end
 			end
+			self.lastSpectrum = outspectrum
 		end
-		self.lastSpectrum = outspectrum
 	end
 end
 

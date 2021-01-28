@@ -15,14 +15,20 @@ function connectToServer(ip, port)
 end
 
 function receive()
-  clientChannel:push({cmd="rx"})
+  clientChannel:supply({cmd="rx"})
   msg = clientChannel:demand()
+  if msg.data then
+    print("rx msg.data:"..msg.data)
+  elseif msg.error then 
+    print("rx msg.error:"..msg.error)
+  end
   return msg.data, msg.error
 end
 
-function transmit(data)
-  clientChannel:push({cmd="tx",data=data})
-  msg = clientChannel:demand()
+function transmit(tdata)
+  print("data:"..tdata)
+  clientChannel:supply({cmd="tx",data=tdata})
+  clientChannel:demand() -- just a way to wait until the thread indicates it's done sending
 end
 
 function closeConnection()
@@ -66,9 +72,11 @@ end
 
 function parse(str, err)
   if str == nil then 
+    print("got an empty string")
     -- do something with the error?
     return {nil, nil, nil}
   else
+    print(str)
     local sep = ";"
     local fields = {}
     for s in string.gmatch(str, "([^"..sep.."]+)") 
@@ -113,7 +121,6 @@ function networkingInterface()
       end
     end
   else
-    print("got connected")
     gameMode = "play"
   end
 end
@@ -203,13 +210,12 @@ end
 
 function waitingInterface(message)
   -- have some nice "waiting for connection" animation
+  ipTextbox:hide()
+  portTextbox:hide()
   local error = netthread:getError()
-  print("error:")
-  print(error)
   assert( not error, error )
   client = clientChannel:pop()
-  print("client:")
-  print(client)
+  print("client:"..tostring(client))
   if client then
     connected = true
   end

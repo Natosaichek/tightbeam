@@ -67,9 +67,6 @@ function displaySpectrum(spectrum, x,y)
 	end
 end
 
---
-
-
 function titlescreen()
 	love.graphics.setColor(1,1,1)
 	if title == "splash" then
@@ -177,7 +174,7 @@ function love.update(dt)
 		CapacitorBank.discharge(Laser, dt)
 
 		-- sensor display is afffected by radiator temperature.
-		Sensor:updateDisplay(Radiator.temperature)
+		Sensor:updateDisplay(Radiator.temperature, parsedTransreflector)
 
 		-- grab and store/send the laser sent energy
 		laserEnergySpectrum = Laser:send()
@@ -223,7 +220,7 @@ function love.update(dt)
 			-- send data
 			laserSend = serializeSpectrum("laser",laserEnergySpectrum)
 			transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
-			transmit(laserSend..";"..transreflectorSend..";"..tostring(t).."\n")
+			transmit(laserSend..";"..transreflectorSend..";"..tostring(net_t).."\n")
 			net_t = 0
 		end
 	end
@@ -235,7 +232,7 @@ function love.update(dt)
 			laserSend = serializeSpectrum("laser",laserEnergySpectrum)
 			transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
 			deserialized = deserializeSpectrum(transreflectorSend)
-			sendstring = laserSend..";"..transreflectorSend..";"..tostring(t).."\n"
+			sendstring = laserSend..";"..transreflectorSend..";"..tostring(net_t).."\n"
 			transmit(sendstring)
 			-- 
 			-- parse received data
@@ -244,7 +241,6 @@ function love.update(dt)
 			parsedLaser = parsedState[1]
 			parsedTransreflector = parsedState[2]
 			net_t = 0
-			-- t = op_time
 		end
 	end
 end
