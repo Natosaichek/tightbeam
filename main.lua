@@ -9,15 +9,14 @@ local furnace = require("furnace")
 local transreflector = require("transreflector")
 local radiator = require("radiator")
 
--- the address and port of the server
-local address, port = "localhost", 343434
 local updaterate = 0.05 -- how long to wait, in seconds, before requesting an update.  Fifty ms should be plenty fast... 20 updates/sec of the oponent's actions is pretty reasonable.
 local game_t
-local score
+local energyout = 0
+local energyin = 0
+local win = false
 net_t = 0
 gameMode = "boot"  -- game mode state gets manipulated in other interfaces (eg. networkInterface)
-title = "splash"   -- title mdoe state also gets manipulated 
-
+title = "splash"   -- title mode state also gets manipulated 
 netMode = "boot"
 connected = false
 connecting = false
@@ -32,7 +31,8 @@ function love.load()
 end
 
 function reset()
-	game_t = 820
+	win = false
+	game_t = 240
 	sensor_t = 0
 	net_t = 0
 	score = 0
@@ -41,6 +41,12 @@ function reset()
 	Furnace:reset()
 	Transreflector:reset()
 	Radiator:reset()
+end
+
+function love.keypressed(key, scancode, isrepeat)
+   if key == "escape" then
+      love.event.quit()
+   end
 end
 
 -- Interface Functions
@@ -111,13 +117,25 @@ end
 
 function gameoverscreen()
 	love.graphics.setColor(1,1,1)
-	love.graphics.print("Your score:", 280, 230)
-	love.graphics.print(tostring(score), 300, 250)
-	love.graphics.print("Try again?", 280, 270)
+	if win then 
+		love.graphics.print("You Won!", 280, 210)
+	else
+		love.graphics.print("You Lost!", 280, 210)
+	end
+	love.graphics.print("Your expended energy:", 280, 230)
+	love.graphics.print(tostring(energyout), 300, 250)
+	love.graphics.print("Your absorbed energy:", 280, 270)
+	love.graphics.print(tostring(energyin), 300, 290)
+	love.graphics.print("Try again?(y/n)", 280, 310)
 	if love.keyboard.isDown('y') then
 		reset()
-		gameMode = "play"
+		gameMode = "boot"
+		title = "playercount"
 	end
+	if love.keyboard.isDown('n') then
+		love.event.quit()
+	end
+
 end
 
 -- what to draw on the screen every frame
@@ -183,16 +201,16 @@ function love.update(dt)
 
 		if parsedLaser ~= nil then
 			for i=1,100,1 do
-				score = score + parsedLaser[i]
+				energyin = energyin + parsedLaser[i]
 			end
 			laserIncident = Transreflector:transmit(parsedLaser)
 			Radiator:addEnergySpectrum(laserIncident)
 			parsedLaser = nil
 		end
 
-		-- for i=1,100,1 do
-		-- 	score = score + laserEnergySpectrum[i]
-		-- end
+		for i=1,100,1 do
+			energyout = energyout + laserEnergySpectrum[i]
+		end
 		
 		if Radiator.temperature > 100 then
 			gameMode = "gameover"
@@ -210,29 +228,34 @@ function love.update(dt)
 		parsedTransreflector = Spectrum.zeroSpectrum()
 	end
 
-	if netMode == "server" and  gameMode == "play" then
+	if netMode == "server" and  (gameMode == "play" or gameMode == "gameover") then
 		if (net_t > updaterate and connected == true) then
 			-- parse received data
 			opponent,err = receive()
 			parsedState = parse(opponent,err)
 			parsedLaser = parsedState[1]
 			parsedTransreflector = parsedState[2]
+			parsedGameMode = parsedState[3]
+			if parsedGameMode == "gameover" then
+				gameMode = "gameover"
+				win = true
+			end
 			-- send data
 			laserSend = serializeSpectrum("laser",laserEnergySpectrum)
 			transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
-			transmit(laserSend..";"..transreflectorSend..";"..tostring(net_t).."\n")
+			sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
+			transmit(sendstring)
 			net_t = 0
 		end
 	end
 	
-	if netMode == "client" and gameMode == "play" then
+	if netMode == "client" and(gameMode == "play" or gameMode == "gameover") then
 		-- send and request data
 		if (net_t > updaterate and connected == true) then
 			-- send data
 			laserSend = serializeSpectrum("laser",laserEnergySpectrum)
 			transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
-			deserialized = deserializeSpectrum(transreflectorSend)
-			sendstring = laserSend..";"..transreflectorSend..";"..tostring(net_t).."\n"
+			sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
 			transmit(sendstring)
 			-- 
 			-- parse received data
@@ -240,6 +263,11 @@ function love.update(dt)
 			parsedState = parse(opponent,err)
 			parsedLaser = parsedState[1]
 			parsedTransreflector = parsedState[2]
+			parsedGameMode = parsedState[3]
+			if parsedGameMode == "gameover" then
+				gameMode = "gameover"
+				win = true
+			end
 			net_t = 0
 		end
 	end
