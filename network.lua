@@ -18,7 +18,7 @@ function receive()
   clientChannel:supply({cmd="rx"})
   msg = clientChannel:demand()
   if msg.data then
-    print("rx msg.data:"..msg.data)
+    -- print("rx msg.data:"..msg.data)
   elseif msg.error then 
     print("rx msg.error:"..msg.error)
   end
@@ -139,7 +139,7 @@ ipTextbox.focussed=false
 ipTextbox.visible=false
 
 portTextbox = Textboxes.create{}
-portTextbox.text="71647"
+portTextbox.text="6111"
 portTextbox.textcolor={.5,1,.5}
 portTextbox.bgcolor={.05,.15,.05}
 portTextbox.focuscolor={.1,.2,.1}
@@ -246,7 +246,8 @@ function clientConnectInterface()
 end
 
 function serverHostInterface()
-  ipTextbox:show()
+  ipTextbox:hide()
+  ipTextbox.text="*"
   portTextbox:show()
   hostButton()
 end
