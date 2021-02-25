@@ -43,22 +43,27 @@ function Capacitor:setDisconnected()
 end
 
 CapacitorBank = {qty = 5, capacitors = {}}
-for i = 1, CapacitorBank.qty, 1
-do
-	CapacitorBank.capacitors[i] = Capacitor:create{}
+
+function CapacitorBank:create(cb)
+	cb = cb or {}
+	setmetatable(cb, self)
+	self.__index = self
+	self:reset()
+	return cb
 end
 
-function CapacitorBank.reset()
-	for i = 1, CapacitorBank.qty, 1
+function CapacitorBank:reset()
+	for i = 1, self.qty, 1
 	do
-		CapacitorBank.capacitors[i] = Capacitor:create{}
+		self.capacitors[i] = Capacitor:create{}
 	end
 end
-function CapacitorBank.consumePower(furnace, dt)
+
+function CapacitorBank:consumePower(furnace, dt)
 	local chargingcaps = {}
-	for i = 1, CapacitorBank.qty,  1
+	for i = 1, self.qty,  1
 	do
-		c = CapacitorBank.capacitors[i]
+		c = self.capacitors[i]
 		if c.charging then
 			if c.capacity > c.stored then 
 				table.insert(chargingcaps, c)
@@ -82,12 +87,12 @@ function CapacitorBank.consumePower(furnace, dt)
 	return 0
 end
 
-function CapacitorBank.discharge(laser, dt)
+function CapacitorBank:discharge(laser, dt)
 	-- dump discharging capacitors through the laser.
 	local dumpingcaps = {}
-	for i = 1, CapacitorBank.qty,  1
+	for i = 1, self.qty,  1
 	do
-		c = CapacitorBank.capacitors[i]
+		c = self.capacitors[i]
 		if c.discharging then
 			if c.stored > 0 then 
 				table.insert(dumpingcaps, c)
@@ -118,12 +123,12 @@ function CapacitorBank.discharge(laser, dt)
 end
 
 
-function capacitorInterface(x,y)
+function capacitorInterface(cb,x,y)
 	-- depict each capacitor and enable keyboard and mouse control of them.
 	local capradius = 20
 	local controlRadius = capradius/2
 	local margin = 10
-	local width = (capradius*2+margin)*CapacitorBank.qty+margin
+	local width = (capradius*2+margin)*cb.qty+margin
 	local height = (capradius+margin)*2
 
 	capChargeColor = {.7,.5,.1}
@@ -139,7 +144,7 @@ function capacitorInterface(x,y)
 		love.graphics.setColor(.2, .2, .6)
 	end
 	love.graphics.rectangle("line", x, y, width, height)
-	for i,c in ipairs(CapacitorBank.capacitors)
+	for i,c in ipairs(cb.capacitors)
 	do
 		cx = x + i*(capradius*2+margin) - capradius
 		cy = y + (capradius+margin)

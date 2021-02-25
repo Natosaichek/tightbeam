@@ -3,6 +3,13 @@ spec = require("spectrum")
 
 Laser = {cfreq = 50, deviation = 1, power = 8000, charging = 1500, wasted = 0, sentEnergySpectrum = Spectrum.zeroSpectrum()}
 
+function Laser:create(c)
+	c = c or {}
+	setmetatable(c, self)
+    self.__index = self
+	return c
+end
+
 function Laser:reset()
 	self.cfreq = 50
 	self.deviation = 1
@@ -78,13 +85,13 @@ function Laser:off()
 end
 
 
-function laserInterface(x,y)
+function laserInterface(l,x,y)
 	local width = 40
 	local height = 304
 	laserFiring = {.98,.2,.6}
 	laserOff = {.7,.1,.5}
 	lasercolor = laserOff
-	if Laser.wasted == Laser.charging then
+	if l.wasted == l.charging then
 		lasercolor = laserFiring
 	end
 	-- if the mouse goes over the box, highlight it.
@@ -94,7 +101,7 @@ function laserInterface(x,y)
 		love.graphics.setColor(lasercolor)
 	end
 	love.graphics.rectangle("line", x, y, width, height)
-	s = Laser:spectrum(1)
+	s = l:spectrum(1)
 	maxwidth = 32
 	deviationCalibration = math.sqrt(2*math.pi)
 	for i=1,100,1
@@ -109,8 +116,8 @@ function laserInterface(x,y)
 				mx = love.mouse.getX()
 				magnitude = (mx-bx)/maxwidth
 				dev = 1/(magnitude*deviationCalibration)
-				Laser:changeDeviation(dev)
-				Laser:changeFreq(i)
+				l:changeDeviation(dev)
+				l:changeFreq(i)
 			end
 		else
 			love.graphics.setColor(lasercolor)

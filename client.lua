@@ -7,7 +7,7 @@ local client = socket.connect(ip, port)
 --client:settimeout(2)
 client:send("ping\n")
 local pong,err = client:receive()
--- print("rcvd:"..pong)
+print("rcvd:"..pong)
 clientChannel:supply(true)
 
 

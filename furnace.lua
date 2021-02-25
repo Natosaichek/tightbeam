@@ -1,6 +1,13 @@
 -- Nuclear Furnace
 Furnace = {powerlevel = 100, targetPowerlevel = 100, maxRate = 4, maxPowerlevel = 5000}
 
+function Furnace:create(c)
+	c = c or {}
+	setmetatable(c, self)
+    self.__index = self
+	return c
+end
+
 function Furnace:reset()
 	self.powerlevel = 0
 	self.targetPowerlevel = 0
@@ -36,7 +43,7 @@ function Furnace:providePower(requested, dt)
 	return excessPowerlevel
 end
 
-function furnaceInterface(ox,oy)
+function furnaceInterface(f,ox,oy)
 	local owidth = 12
 	local oheight = 304
 	local margin = 2
@@ -51,8 +58,8 @@ function furnaceInterface(ox,oy)
 		color[3] = 1+color[3]/2
 		if love.mouse.isDown(1) then
 			my = love.mouse.getY()
-			magnitude = ((y+height-my)/height)*Furnace.maxPowerlevel
-			Furnace:setTargetPower(magnitude)
+			magnitude = ((y+height-my)/height)*f.maxPowerlevel
+			f:setTargetPower(magnitude)
 		end
 	end
 	love.graphics.setColor(color[1],color[2],color[3])
@@ -61,11 +68,11 @@ function furnaceInterface(ox,oy)
 	love.graphics.setColor(.1,.1,.1)
 	love.graphics.rectangle("fill", x, y, width, height)
 	-- draw a rectangle indicating the current power level
-	powerheight = (Furnace.powerlevel*height/Furnace.maxPowerlevel)
+	powerheight = (f.powerlevel*height/f.maxPowerlevel)
 	love.graphics.setColor(.1,.6,.1)
 	love.graphics.rectangle("fill", x, y+height-powerheight, width, powerheight)
 	-- draw a line across indicating the target power level
-	targetpos = y + height * (1-(Furnace.targetPowerlevel/Furnace.maxPowerlevel))
+	targetpos = y + height * (1-(f.targetPowerlevel/f.maxPowerlevel))
 	love.graphics.setColor(.2,.8,.2)
 	love.graphics.rectangle("fill", x-1, targetpos, width+1, 2)
 end

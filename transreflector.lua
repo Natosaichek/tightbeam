@@ -6,6 +6,13 @@ end
 
 Transreflector = {spectrum = default_spectrum}
 
+function Transreflector:create(c)
+	c = c or {}
+	setmetatable(c, self)
+	self.__index = self
+	return c
+end
+
 function Transreflector:reset()
 	for i = 1, 100, 1
 	do
@@ -48,7 +55,7 @@ function Transreflector:adjustSpectrum(index, magnitude, direction, depth)
 	end
 end
 
-function transreflectorInterface(x,y)
+function transreflectorInterface(tr,x,y)
 	-- in this function we'll display the existing transreflector spectrum, and also listen for updates to it from mouse events.
 	-- first we'll set up the position and size of the box
 	local width = 106
@@ -63,7 +70,7 @@ function transreflectorInterface(x,y)
 	love.graphics.rectangle("line", x, y, width, height)
 	
 	-- now we'll go through and draw the bars for the transreflector spectrum.
-	barlengths = Transreflector.spectrum
+	barlengths = tr.spectrum
 	local displayLaser = {}
 
 	if parsedLaser == nil then 
@@ -86,7 +93,7 @@ function transreflectorInterface(x,y)
 			if love.mouse.isDown(1) then
 				mx = love.mouse.getX()
 				magnitude = (mx-bx) / 100
-				Transreflector:adjustSpectrum(i, magnitude, {1,1}, 0)
+				tr:adjustSpectrum(i, magnitude, {1,1}, 0)
 			end
 		else
 			love.graphics.setColor(.7,.7,.75)

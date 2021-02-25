@@ -6,11 +6,13 @@ local netthread
 local clientChannel = love.thread.getChannel ( 'client' );
 
 function startServer(ip, port)
+  print("starting server")
   netthread = love.thread.newThread("server.lua")
   netthread:start(ip,port)
   connecting = true
 end
 function connectToServer(ip, port)
+  print("starting client")
   netthread = love.thread.newThread("client.lua")
   netthread:start(ip,port)
   connecting = true

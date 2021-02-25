@@ -1,6 +1,7 @@
 local network = require("network")
 local tb = require("textboxes")
 
+local player = require("player")
 local spec = require("spectrum")
 local sensor = require("sensor")
 local laser = require("laser")
@@ -20,6 +21,7 @@ title = "splash"   -- title mode state also gets manipulated
 netMode = "boot"
 connected = false
 connecting = false
+player = Player:create()
 
 -- onetime setup
 function love.load()
@@ -39,11 +41,7 @@ function reset()
 	sensor_t = 0
 	turn_t = 0
 	score = 0
-	Laser:reset()
-	CapacitorBank:reset()
-	Furnace:reset()
-	Transreflector:reset()
-	Radiator:reset()
+	player:reset()
 end
 
 function love.keypressed(key, scancode, isrepeat)
@@ -146,12 +144,12 @@ function love.draw()
 	elseif gameMode == "menu" then
 		menu()
 	elseif gameMode == "play" then
-		furnaceInterface(2,150)
-		radiatorInterface(16,150)
-		transreflectorInterface(125, 150)
-		laserInterface(233,150)
-		capacitorInterface(2,460)
-		sensorInterface(350,150)
+		furnaceInterface(player.furnace,2,150)
+		radiatorInterface(player.radiator,16,150)
+		transreflectorInterface(player.transreflector,125, 150)
+		laserInterface(player.laser,233,150)
+		capacitorInterface(player.capacitorbank,2,460)
+		sensorInterface(player.sensor,350,150)
 		love.graphics.setColor(1,1,1)
 		love.graphics.print(tostring(game_t), 500, 50)
 		love.graphics.print(tostring(score), 500, 70)
@@ -168,54 +166,23 @@ function love.update(dt)
 	turn_t = turn_t + dt
 	while (turn_t > updaterate) do
 		if gameMode == "play" then
-			--update can be called a lot.  dt is the time since it was last called.
-			-- Power is energy / time.
-			-- energy is power*time
 
-			-- the radiator emits energy at some rate, that is, there is a power level for it at 
-			-- each point in it's spectrum.  how much energy has left in the past dt? Well, we'll just dump it:
-			Radiator:radiateEnergy(updaterate)
-			-- our radiated spectrum is a power spectrum
-			local radiatedSpectrum = Radiator:spectrum()
-			local internallyReflectedSpectrum = Transreflector:reflect(radiatedSpectrum)
-			Radiator:addPowerSpectrum(internallyReflectedSpectrum, updaterate)
-			-- any reflected energy has now been reabsorbed.
-
-			-- our furnace takes time to adjust its power level.
-			Furnace:adjustPower(updaterate)
-
-			-- are any capacitors set for charging?
-				-- if so, distribute power from furnace into capacitors, unless it's full.
-				-- if not, put power from furnace into radiator.
-			local excessEnergy = CapacitorBank.consumePower(Furnace, updaterate) -- if there is excess energy this dt because the capacitors are full, then we dump it.
-			Radiator:addEnergy(excessEnergy)
-
-			-- are any capacitors set for discharging?
-			-- if so, discharge from capacitors through the laser
-			CapacitorBank.discharge(Laser, updaterate)
-
-			-- sensor display is afffected by radiator temperature.
-			Sensor:updateDisplay(Radiator.temperature, parsedTransreflector)
-
-			-- grab and store/send the laser sent energy
-			laserEnergySpectrum = Laser:send()
-
-
+			player:update(updaterate,parsedTransreflector)
 
 			if parsedLaser ~= nil then
 				for i=1,100,1 do
 					energyin = energyin + parsedLaser[i]
 				end
-				laserIncident = Transreflector:transmit(parsedLaser)
-				Radiator:addEnergySpectrum(laserIncident)
+				laserIncident = player.transreflector:transmit(parsedLaser)
+				player.radiator:addEnergySpectrum(laserIncident)
 				parsedLaser = nil
 			end
 
 			for i=1,100,1 do
-				energyout = energyout + laserEnergySpectrum[i]
+				energyout = energyout + player.laserEnergySpectrum[i]
 			end
 			
-			if Radiator.temperature > 100 then
+			if player.radiator.temperature > 100 then
 				gameMode = "gameover"
 				win = false
 			end
@@ -241,8 +208,8 @@ function love.update(dt)
 					end
 				end
 				-- send data
-				laserSend = serializeSpectrum("laser",laserEnergySpectrum)
-				transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
+				laserSend = serializeSpectrum("laser",player.laserEnergySpectrum)
+				transreflectorSend = serializeSpectrum("transreflector",player.transreflector.spectrum)
 				sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
 				transmit(sendstring)
 			end
@@ -251,8 +218,8 @@ function love.update(dt)
 			-- send and request data
 			if (connected == true) then
 				-- send data
-				laserSend = serializeSpectrum("laser",laserEnergySpectrum)
-				transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
+				laserSend = serializeSpectrum("laser",player.laserEnergySpectrum)
+				transreflectorSend = serializeSpectrum("transreflector",player.transreflector.spectrum)
 				sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
 				transmit(sendstring)
 				-- 

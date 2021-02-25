@@ -4,6 +4,16 @@ spec = require("spectrum")
 Sensor = {refresh = .5, quality = .9, deltat = .01, last_update = 0, lastSpectrum = Spectrum.zeroSpectrum(), currentRefresh = .5}
 sensor_t = 0
 
+function Sensor:create(c)
+	c = c or {}
+	setmetatable(c, self)
+    self.__index = self
+	return c
+end
+
+function Sensor:reset()
+end
+
 function Sensor:updateDisplay(temperature, transreflector)
 	-- at best conditions, we update our display of the enemy shield spectrum fully every "refresh" period
 	-- as we warm up, the refresh period increases and our probability of getting a full read on the enemy shield decreases
@@ -26,7 +36,7 @@ end
 
 
 -- depict op_transreflector
-function sensorInterface(x,y)
+function sensorInterface(s,x,y)
 	-- in this function we'll display the existing transreflector spectrum, and also listen for updates to it from mouse events.
 	-- first we'll set up the position and size of the box
 	local width = 106
@@ -37,11 +47,11 @@ function sensorInterface(x,y)
 
 	-- now we'll go through and draw the bars for the transreflector spectrum.
 
-	brightness = ((Sensor.currentRefresh-sensor_t)/Sensor.currentRefresh)*.6 + .4
+	brightness = ((s.currentRefresh-sensor_t)/s.currentRefresh)*.6 + .4
 	-- love.graphics.setColor(brightness, brightness, brightness)
 
-	if Sensor.lastSpectrum ~= nil then
-		barlengths = Sensor.lastSpectrum
+	if s.lastSpectrum ~= nil then
+		barlengths = s.lastSpectrum
 	else
 		barlengths = Spectrum.zeroSpectrum()
 	end
