@@ -50,6 +50,7 @@ function Player:update(dt, parsedTransreflector)
 
 	-- grab and store/send the laser sent energy
 	self.laserEnergySpectrum = self.laser:send()
+	
 end
 
 function Player:reset()

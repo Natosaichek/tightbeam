@@ -1,3 +1,5 @@
+require("spectrum")
+
 local default_spectrum = {}
 for i = 1, 100, 1
 do
@@ -10,6 +12,7 @@ function Transreflector:create(c)
 	c = c or {}
 	setmetatable(c, self)
 	self.__index = self
+	c.spectrum = Spectrum.copy(default_spectrum)
 	return c
 end
 

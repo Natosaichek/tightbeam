@@ -1,12 +1,13 @@
 spec = require("spectrum")
 -- default values for the laser
 
-Laser = {cfreq = 50, deviation = 1, power = 8000, charging = 1500, wasted = 0, sentEnergySpectrum = Spectrum.zeroSpectrum()}
+Laser = {cfreq = 50, deviation = 1, power = 8000, charging = 1500, wasted = 0}
 
 function Laser:create(c)
 	c = c or {}
 	setmetatable(c, self)
     self.__index = self
+    c.sentEnergySpectrum = Spectrum.zeroSpectrum()
 	return c
 end
 

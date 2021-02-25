@@ -106,6 +106,7 @@ function titlescreen()
 		if love.keyboard.isDown('s') then
 			netMode = "none"
 			gameMode = "play"
+			aiPlayer = Player:create()
 		end
 		if love.keyboard.isDown('m') then
 			title = "multiplayer"
@@ -166,7 +167,7 @@ function love.update(dt)
 	turn_t = turn_t + dt
 	while (turn_t > updaterate) do
 		if gameMode == "play" then
-
+			
 			player:update(updaterate,parsedTransreflector)
 
 			if parsedLaser ~= nil then
@@ -193,55 +194,59 @@ function love.update(dt)
 				gameMode = "gameover"
 			end
 		end
-		if netMode == "server" and  (gameMode == "play" or gameMode == "gameover") then
-			if (connected == true) then
-				-- parse received data
-				opponent,err = receive()
-				parsedState = parse(opponent,err)
-				parsedLaser = parsedState[1]
-				parsedTransreflector = parsedState[2]
-				parsedGameMode = parsedState[3]
-				if parsedGameMode == "gameover" then
-					if gameMode == "play" then
-						gameMode = "gameover"
-						win = true
-					end
-				end
-				-- send data
-				laserSend = serializeSpectrum("laser",player.laserEnergySpectrum)
-				transreflectorSend = serializeSpectrum("transreflector",player.transreflector.spectrum)
-				sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
-				transmit(sendstring)
-			end
+
+		if netMode == "none" then
+			aiPlayer:update(updaterate,player.transreflector.spectrum)
+			parsedLaser = aiPlayer.laserEnergySpectrum
+			parsedTransreflector = aiPlayer.transreflector.spectrum
 		end
-		if netMode == "client" and(gameMode == "play" or gameMode == "gameover") then
-			-- send and request data
-			if (connected == true) then
-				-- send data
-				laserSend = serializeSpectrum("laser",player.laserEnergySpectrum)
-				transreflectorSend = serializeSpectrum("transreflector",player.transreflector.spectrum)
-				sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
-				transmit(sendstring)
-				-- 
-				-- parse received data
-				opponent,err = receive()
-				parsedState = parse(opponent,err)
-				parsedLaser = parsedState[1]
-				parsedTransreflector = parsedState[2]
-				parsedGameMode = parsedState[3]
-				if parsedGameMode == "gameover" then
-					if gameMode == "play" then
-						gameMode = "gameover"
-						win = true
-					end
-				end
+
+
+		-- if netMode == "server" and  (gameMode == "play" or gameMode == "gameover") then
+		-- 	if (connected == true) then
+		-- 		-- parse received data
+		-- 		opponent,err = receive()
+		-- 		parsedState = parse(opponent,err)
+		-- 		parsedLaser = parsedState[1]
+		-- 		parsedTransreflector = parsedState[2]
+		-- 		parsedGameMode = parsedState[3]
+		-- 		if parsedGameMode == "gameover" then
+		-- 			if gameMode == "play" then
+		-- 				gameMode = "gameover"
+		-- 				win = true
+		-- 			end
+		-- 		end
+		-- 		-- send data
+		-- 		laserSend = serializeSpectrum("laser",player.laserEnergySpectrum)
+		-- 		transreflectorSend = serializeSpectrum("transreflector",player.transreflector.spectrum)
+		-- 		sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
+		-- 		transmit(sendstring)
+		-- 	end
+		-- end
+		-- if netMode == "client" and(gameMode == "play" or gameMode == "gameover") then
+		-- 	-- send and request data
+		-- 	if (connected == true) then
+		-- 		-- send data
+		-- 		laserSend = serializeSpectrum("laser",player.laserEnergySpectrum)
+		-- 		transreflectorSend = serializeSpectrum("transreflector",player.transreflector.spectrum)
+		-- 		sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
+		-- 		transmit(sendstring)
+		-- 		-- 
+		-- 		-- parse received data
+		-- 		opponent,err = receive()
+		-- 		parsedState = parse(opponent,err)
+		-- 		parsedLaser = parsedState[1]
+		-- 		parsedTransreflector = parsedState[2]
+		-- 		parsedGameMode = parsedState[3]
+		-- 		if parsedGameMode == "gameover" then
+		-- 			if gameMode == "play" then
+		-- 				gameMode = "gameover"
+		-- 				win = true
+		-- 			end
+		-- 		end
 				
-			end
-			if netMode == "none" then
-				parsedLaser = Spectrum.zeroSpectrum()
-				parsedTransreflector = Spectrum.zeroSpectrum()
-			end
-		end
+		-- 	end
+		-- end
 		turn_t = turn_t-updaterate
 	end
 end
