@@ -47,10 +47,10 @@ function Player:update(dt, parsedTransreflector)
 
 	-- sensor display is afffected by radiator temperature.
 	self.sensor:updateDisplay(self.radiator.temperature, parsedTransreflector)
-
+	self.sensor.sensor_t = self.sensor.sensor_t + dt
 	-- grab and store/send the laser sent energy
 	self.laserEnergySpectrum = self.laser:send()
-	
+
 end
 
 function Player:reset()

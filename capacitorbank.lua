@@ -34,6 +34,7 @@ function Capacitor:setCharging()
 	self.charging = true
 end
 function Capacitor:setDischarging()
+	-- print("discharging a capacitor")
 	self.discharging = true
 	self.charging = false
 end
@@ -42,13 +43,14 @@ function Capacitor:setDisconnected()
 	self.charging = false
 end
 
-CapacitorBank = {qty = 5, capacitors = {}}
+CapacitorBank = {qty = 5}
 
 function CapacitorBank:create(cb)
 	cb = cb or {}
 	setmetatable(cb, self)
 	self.__index = self
-	self:reset()
+	cb.capacitors = {}
+	cb:reset()
 	return cb
 end
 
@@ -70,12 +72,12 @@ function CapacitorBank:consumePower(furnace, dt)
 			end
 		end
 	end
-	nreceivers = table.maxn(chargingcaps) 
-	energyAvailable = furnace.powerlevel*dt
+	local nreceivers = table.maxn(chargingcaps) 
+	local energyAvailable = furnace.powerlevel*dt
 	-- even though a cap technically might not have enough capacity to accommodate all the power, 
 	-- we'll pretend they can overcharge a little bit and not worry about the remainder for now.
 	if nreceivers > 0 then
-		percapEnergy = energyAvailable / table.maxn(chargingcaps) 
+		local percapEnergy = energyAvailable / table.maxn(chargingcaps) 
 		for i,c in ipairs(chargingcaps) do
 			c:charge(percapEnergy)
 		end
@@ -99,16 +101,16 @@ function CapacitorBank:discharge(laser, dt)
 			end
 		end
 	end
-	ndumpers = table.maxn(dumpingcaps)
+	local ndumpers = table.maxn(dumpingcaps)
 	if ndumpers == 0 then
 		laser:off()
 	else
-		storedEnergy = 0
+		local storedEnergy = 0
 		for i,c in ipairs(dumpingcaps)
 		do
 			storedEnergy = storedEnergy + c.stored
 		end
-		usedEnergy = laser:consume(storedEnergy, dt)
+		local usedEnergy = laser:consume(storedEnergy, dt)
 		for i,c in ipairs(dumpingcaps)
 		do
 			if c.stored < usedEnergy then

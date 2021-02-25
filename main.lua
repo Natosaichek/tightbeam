@@ -38,7 +38,6 @@ function reset()
 	netMode = "boot"
 	win = false
 	game_t = 240
-	sensor_t = 0
 	turn_t = 0
 	score = 0
 	player:reset()
@@ -167,8 +166,8 @@ function love.update(dt)
 	turn_t = turn_t + dt
 	while (turn_t > updaterate) do
 		if gameMode == "play" then
-			
 			player:update(updaterate,parsedTransreflector)
+
 
 			if parsedLaser ~= nil then
 				for i=1,100,1 do
@@ -189,7 +188,6 @@ function love.update(dt)
 			end
 
 			game_t = game_t-updaterate
-			sensor_t = sensor_t+updaterate
 			if game_t < 0 then
 				gameMode = "gameover"
 			end
@@ -197,7 +195,7 @@ function love.update(dt)
 
 		if netMode == "none" then
 			aiPlayer:update(updaterate,player.transreflector.spectrum)
-			parsedLaser = aiPlayer.laserEnergySpectrum
+			parsedLaser = aiPlayer.laserEnergySpectrum --Spectrum.zeroSpectrum()
 			parsedTransreflector = aiPlayer.transreflector.spectrum
 		end
 

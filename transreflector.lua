@@ -73,7 +73,7 @@ function transreflectorInterface(tr,x,y)
 	love.graphics.rectangle("line", x, y, width, height)
 	
 	-- now we'll go through and draw the bars for the transreflector spectrum.
-	barlengths = tr.spectrum
+	local barlengths = tr.spectrum
 	local displayLaser = {}
 
 	if parsedLaser == nil then 
@@ -86,16 +86,16 @@ function transreflectorInterface(tr,x,y)
 
 	for i=1,100,1
 	do
-		bx = x+2
-		by = y+3*i
-		bwidth = width - 4
-		bheight = 2
+		local bx = x+2
+		local by = y+3*i
+		local bwidth = width - 4
+		local bheight = 2
 		-- if the mouse is over one of the bars, then we highlight that bar and also enable changing the spectrum value.
 		if mouseinBox(bx, by-1, bwidth, bheight+2) then
 			love.graphics.setColor(.9, .9, .95)
 			if love.mouse.isDown(1) then
-				mx = love.mouse.getX()
-				magnitude = (mx-bx) / 100
+				local mx = love.mouse.getX()
+				local magnitude = (mx-bx) / 100
 				tr:adjustSpectrum(i, magnitude, {1,1}, 0)
 			end
 		else

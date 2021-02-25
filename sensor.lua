@@ -2,12 +2,12 @@
 spec = require("spectrum")
 
 Sensor = {refresh = .5, quality = .9, deltat = .01, last_update = 0, lastSpectrum = Spectrum.zeroSpectrum(), currentRefresh = .5}
-sensor_t = 0
 
 function Sensor:create(c)
 	c = c or {}
 	setmetatable(c, self)
     self.__index = self
+    c.sensor_t = 0
 	return c
 end
 
@@ -20,8 +20,8 @@ function Sensor:updateDisplay(temperature, transreflector)
 	if transreflector then 
 		self.currentRefresh = self.refresh + temperature*self.deltat
 		outspectrum = Spectrum.zeroSpectrum()
-		if sensor_t > self.currentRefresh then
-			sensor_t = 0
+		if self.sensor_t > self.currentRefresh then
+			self.sensor_t = 0
 			for i=1,100,1 do
 				if (love.math.random() < (self.quality-(self.deltat*temperature))) then
 					outspectrum[i] = transreflector[i]
@@ -47,7 +47,7 @@ function sensorInterface(s,x,y)
 
 	-- now we'll go through and draw the bars for the transreflector spectrum.
 
-	brightness = ((s.currentRefresh-sensor_t)/s.currentRefresh)*.6 + .4
+	brightness = ((s.currentRefresh-s.sensor_t)/s.currentRefresh)*.6 + .4
 	-- love.graphics.setColor(brightness, brightness, brightness)
 
 	if s.lastSpectrum ~= nil then

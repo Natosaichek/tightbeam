@@ -57,8 +57,8 @@ function furnaceInterface(f,ox,oy)
 		color[2] = 1+color[2]/2
 		color[3] = 1+color[3]/2
 		if love.mouse.isDown(1) then
-			my = love.mouse.getY()
-			magnitude = ((y+height-my)/height)*f.maxPowerlevel
+			local my = love.mouse.getY()
+			local magnitude = ((y+height-my)/height)*f.maxPowerlevel
 			f:setTargetPower(magnitude)
 		end
 	end
@@ -68,11 +68,11 @@ function furnaceInterface(f,ox,oy)
 	love.graphics.setColor(.1,.1,.1)
 	love.graphics.rectangle("fill", x, y, width, height)
 	-- draw a rectangle indicating the current power level
-	powerheight = (f.powerlevel*height/f.maxPowerlevel)
+	local powerheight = (f.powerlevel*height/f.maxPowerlevel)
 	love.graphics.setColor(.1,.6,.1)
 	love.graphics.rectangle("fill", x, y+height-powerheight, width, powerheight)
 	-- draw a line across indicating the target power level
-	targetpos = y + height * (1-(f.targetPowerlevel/f.maxPowerlevel))
+	local targetpos = y + height * (1-(f.targetPowerlevel/f.maxPowerlevel))
 	love.graphics.setColor(.2,.8,.2)
 	love.graphics.rectangle("fill", x-1, targetpos, width+1, 2)
 end
