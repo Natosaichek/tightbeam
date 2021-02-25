@@ -83,7 +83,7 @@ function parse(str, err)
     -- do something with the error?
     return {nil, nil, nil}
   else
-    print(str)
+    -- print(str)
     local sep = ";"
     local fields = {}
     for s in string.gmatch(str, "([^"..sep.."]+)") 
@@ -92,8 +92,8 @@ function parse(str, err)
     end
     local op_laser = deserializeSpectrum(fields[1])
     local op_transreflector = deserializeSpectrum(fields[2])
-    time = tonumber(fields[3])
-    return {op_laser[2],op_transreflector[2],time}
+    local op_state = fields[3]
+    return {op_laser[2],op_transreflector[2],op_state}
   end
 end
 

@@ -7,7 +7,7 @@ local client = server:accept()
 -- client:setoption("keepalive", true)
 --client:settimeout(2)
 local ping,err = client:receive()
-print("got ping:"..ping)
+-- print("got ping:"..ping)
 client:send("pong\n")
 clientChannel:supply(true)
 

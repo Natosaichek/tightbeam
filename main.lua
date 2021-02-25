@@ -9,12 +9,12 @@ local furnace = require("furnace")
 local transreflector = require("transreflector")
 local radiator = require("radiator")
 
-local updaterate = 0.05 -- how long to wait, in seconds, before requesting an update.  Fifty ms should be plenty fast... 20 updates/sec of the oponent's actions is pretty reasonable.
+local updaterate = 0.02 -- how long to wait, in seconds, before requesting an update.  Fifty ms should be plenty fast... 50 updates/sec is pretty reasonable.
 local game_t
 local energyout = 0
 local energyin = 0
 local win = false
-net_t = 0
+turn_t = 0
 gameMode = "boot"  -- game mode state gets manipulated in other interfaces (eg. networkInterface)
 title = "splash"   -- title mode state also gets manipulated 
 netMode = "boot"
@@ -24,17 +24,20 @@ connecting = false
 -- onetime setup
 function love.load()
 	love.window.setTitle("Tightbeam - Commsat Combat")
-	gameMode = "boot"
 	reset()
+	title = "splash"
 	MenuFont = love.graphics.newFont("ArizoneUnicaseRegular-5dRZ.ttf", 14)
 	love.graphics.setFont(MenuFont)
 end
 
 function reset()
+	gameMode = "boot"
+	title = "playercount"
+	netMode = "boot"
 	win = false
 	game_t = 240
 	sensor_t = 0
-	net_t = 0
+	turn_t = 0
 	score = 0
 	Laser:reset()
 	CapacitorBank:reset()
@@ -129,8 +132,6 @@ function gameoverscreen()
 	love.graphics.print("Try again?(y/n)", 280, 310)
 	if love.keyboard.isDown('y') then
 		reset()
-		gameMode = "boot"
-		title = "playercount"
 	end
 	if love.keyboard.isDown('n') then
 		love.event.quit()
@@ -164,111 +165,116 @@ function love.draw()
 end
 
 function love.update(dt)
-	if gameMode == "play" then
-		--update can be called a lot.  dt is the time since it was last called.
-		-- Power is energy / time.
-		-- energy is power*time
+	turn_t = turn_t + dt
+	while (turn_t > updaterate) do
+		if gameMode == "play" then
+			--update can be called a lot.  dt is the time since it was last called.
+			-- Power is energy / time.
+			-- energy is power*time
 
-		-- the radiator emits energy at some rate, that is, there is a power level for it at 
-		-- each point in it's spectrum.  how much energy has left in the past dt? Well, we'll just dump it:
-		Radiator:radiateEnergy(dt)
-		-- our radiated spectrum is a power spectrum
-		local radiatedSpectrum = Radiator:spectrum()
-		local internallyReflectedSpectrum = Transreflector:reflect(radiatedSpectrum)
-		Radiator:addPowerSpectrum(internallyReflectedSpectrum, dt)
-		-- any reflected energy has now been reabsorbed.
+			-- the radiator emits energy at some rate, that is, there is a power level for it at 
+			-- each point in it's spectrum.  how much energy has left in the past dt? Well, we'll just dump it:
+			Radiator:radiateEnergy(updaterate)
+			-- our radiated spectrum is a power spectrum
+			local radiatedSpectrum = Radiator:spectrum()
+			local internallyReflectedSpectrum = Transreflector:reflect(radiatedSpectrum)
+			Radiator:addPowerSpectrum(internallyReflectedSpectrum, updaterate)
+			-- any reflected energy has now been reabsorbed.
 
-		-- our furnace takes time to adjust its power level.
-		Furnace:adjustPower(dt)
+			-- our furnace takes time to adjust its power level.
+			Furnace:adjustPower(updaterate)
 
-		-- are any capacitors set for charging?
-			-- if so, distribute power from furnace into capacitors, unless it's full.
-			-- if not, put power from furnace into radiator.
-		local excessEnergy = CapacitorBank.consumePower(Furnace, dt) -- if there is excess energy this dt because the capacitors are full, then we dump it.
-		Radiator:addEnergy(excessEnergy)
+			-- are any capacitors set for charging?
+				-- if so, distribute power from furnace into capacitors, unless it's full.
+				-- if not, put power from furnace into radiator.
+			local excessEnergy = CapacitorBank.consumePower(Furnace, updaterate) -- if there is excess energy this dt because the capacitors are full, then we dump it.
+			Radiator:addEnergy(excessEnergy)
 
-		-- are any capacitors set for discharging?
-		-- if so, discharge from capacitors through the laser
-		CapacitorBank.discharge(Laser, dt)
+			-- are any capacitors set for discharging?
+			-- if so, discharge from capacitors through the laser
+			CapacitorBank.discharge(Laser, updaterate)
 
-		-- sensor display is afffected by radiator temperature.
-		Sensor:updateDisplay(Radiator.temperature, parsedTransreflector)
+			-- sensor display is afffected by radiator temperature.
+			Sensor:updateDisplay(Radiator.temperature, parsedTransreflector)
 
-		-- grab and store/send the laser sent energy
-		laserEnergySpectrum = Laser:send()
+			-- grab and store/send the laser sent energy
+			laserEnergySpectrum = Laser:send()
 
 
 
-		if parsedLaser ~= nil then
+			if parsedLaser ~= nil then
+				for i=1,100,1 do
+					energyin = energyin + parsedLaser[i]
+				end
+				laserIncident = Transreflector:transmit(parsedLaser)
+				Radiator:addEnergySpectrum(laserIncident)
+				parsedLaser = nil
+			end
+
 			for i=1,100,1 do
-				energyin = energyin + parsedLaser[i]
+				energyout = energyout + laserEnergySpectrum[i]
 			end
-			laserIncident = Transreflector:transmit(parsedLaser)
-			Radiator:addEnergySpectrum(laserIncident)
-			parsedLaser = nil
-		end
-
-		for i=1,100,1 do
-			energyout = energyout + laserEnergySpectrum[i]
-		end
-		
-		if Radiator.temperature > 100 then
-			gameMode = "gameover"
-		end
-
-		game_t = game_t-dt
-		sensor_t = sensor_t+dt
-		if game_t < 0 then
-			gameMode = "gameover"
-		end
-	end
-	net_t = net_t + dt
-	if netMode == "none" then
-		parsedLaser = Spectrum.zeroSpectrum()
-		parsedTransreflector = Spectrum.zeroSpectrum()
-	end
-
-	if netMode == "server" and  (gameMode == "play" or gameMode == "gameover") then
-		if (net_t > updaterate and connected == true) then
-			-- parse received data
-			opponent,err = receive()
-			parsedState = parse(opponent,err)
-			parsedLaser = parsedState[1]
-			parsedTransreflector = parsedState[2]
-			parsedGameMode = parsedState[3]
-			if parsedGameMode == "gameover" then
+			
+			if Radiator.temperature > 100 then
 				gameMode = "gameover"
-				win = true
+				win = false
 			end
-			-- send data
-			laserSend = serializeSpectrum("laser",laserEnergySpectrum)
-			transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
-			sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
-			transmit(sendstring)
-			net_t = 0
-		end
-	end
-	
-	if netMode == "client" and(gameMode == "play" or gameMode == "gameover") then
-		-- send and request data
-		if (net_t > updaterate and connected == true) then
-			-- send data
-			laserSend = serializeSpectrum("laser",laserEnergySpectrum)
-			transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
-			sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
-			transmit(sendstring)
-			-- 
-			-- parse received data
-			opponent,err = receive()
-			parsedState = parse(opponent,err)
-			parsedLaser = parsedState[1]
-			parsedTransreflector = parsedState[2]
-			parsedGameMode = parsedState[3]
-			if parsedGameMode == "gameover" then
+
+			game_t = game_t-updaterate
+			sensor_t = sensor_t+updaterate
+			if game_t < 0 then
 				gameMode = "gameover"
-				win = true
 			end
-			net_t = 0
 		end
+		if netMode == "server" and  (gameMode == "play" or gameMode == "gameover") then
+			if (connected == true) then
+				-- parse received data
+				opponent,err = receive()
+				parsedState = parse(opponent,err)
+				parsedLaser = parsedState[1]
+				parsedTransreflector = parsedState[2]
+				parsedGameMode = parsedState[3]
+				if parsedGameMode == "gameover" then
+					if gameMode == "play" then
+						gameMode = "gameover"
+						win = true
+					end
+				end
+				-- send data
+				laserSend = serializeSpectrum("laser",laserEnergySpectrum)
+				transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
+				sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
+				transmit(sendstring)
+			end
+		end
+		if netMode == "client" and(gameMode == "play" or gameMode == "gameover") then
+			-- send and request data
+			if (connected == true) then
+				-- send data
+				laserSend = serializeSpectrum("laser",laserEnergySpectrum)
+				transreflectorSend = serializeSpectrum("transreflector",Transreflector.spectrum)
+				sendstring = laserSend..";"..transreflectorSend..";"..gameMode.."\n"
+				transmit(sendstring)
+				-- 
+				-- parse received data
+				opponent,err = receive()
+				parsedState = parse(opponent,err)
+				parsedLaser = parsedState[1]
+				parsedTransreflector = parsedState[2]
+				parsedGameMode = parsedState[3]
+				if parsedGameMode == "gameover" then
+					if gameMode == "play" then
+						gameMode = "gameover"
+						win = true
+					end
+				end
+				
+			end
+			if netMode == "none" then
+				parsedLaser = Spectrum.zeroSpectrum()
+				parsedTransreflector = Spectrum.zeroSpectrum()
+			end
+		end
+		turn_t = turn_t-updaterate
 	end
 end
